@@ -1,0 +1,15 @@
+{% load israf_tags %}<div class="tablo-kap"><table class="tablo">
+  <thead><tr><th>Yemek</th><th>Kategori</th><th class="sayi">Çıkış</th><th class="sayi">Kazan artığı</th><th class="sayi">Tabak artığı</th><th class="sayi">Toplam israf</th></tr></thead>
+  <tbody>
+  {% for g in liste %}{% with m=g.measures %}
+    <tr>
+      <td><a href="{% url 'israf:yemek' g.dish.code %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}">{{ g.label }}</a></td>
+      <td>{{ g.category_label }}</td>
+      <td class="sayi">{{ m.appearances }}</td>
+      <td class="sayi">{{ m.pot_rate|yuzde }}{% esik m.pot_rate "kazan" %}</td>
+      <td class="sayi">{{ m.plate_waste_rate|yuzde }}</td>
+      <td class="sayi">{{ m.total_waste_rate|yuzde }}{% esik m.total_waste_rate "toplam" %}</td>
+    </tr>
+  {% endwith %}{% empty %}<tr><td colspan="6" class="soluk">Veri yok.</td></tr>{% endfor %}
+  </tbody>
+</table></div>

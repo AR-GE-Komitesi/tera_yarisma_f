@@ -1,0 +1,99 @@
+{% extends "israf/base.html" %}
+{% load israf_tags %}
+{% block title %}{{ tarih|date:"d.m.Y" }} {{ ogun_adi }}{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>{{ tarih|date:"d F Y, l" }} · {{ ogun_adi }}</h1>
+    <p>{% if servis %}Servis {{ servis.0|time:"H:i" }}–{{ servis.1|time:"H:i" }}{% endif %}{% if oturum.note %} · {{ oturum.note }}{% endif %}
+      · {{ tepsi|porsiyon }} tepsi analiz edildi</p>
+  </div>
+  <div class="gezinme">
+    {% if onceki %}<a class="dugme ikincil" href="?tarih={{ onceki.0|date:'Y-m-d' }}&ogun={{ onceki.1 }}">← Önceki öğün</a>{% else %}<span class="dugme ikincil" aria-disabled="true">← Önceki öğün</span>{% endif %}
+    {% if sonraki %}<a class="dugme ikincil" href="?tarih={{ sonraki.0|date:'Y-m-d' }}&ogun={{ sonraki.1 }}">Sonraki öğün →</a>{% else %}<span class="dugme ikincil" aria-disabled="true">Sonraki öğün →</span>{% endif %}
+  </div>
+</div>
+
+<form class="filtre" method="get" aria-label="Gün seçimi">
+  <label>Tarih<input type="date" name="tarih" value="{{ tarih|date:'Y-m-d' }}"></label>
+  <label>Öğün<select name="ogun">{% for value, label in meal_choices %}<option value="{{ value }}" {% if value == ogun %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <button class="dugme ikincil" type="submit">Göster</button>
+  <div class="hazir"><a href="{% url 'israf:menu_csv' %}?baslangic={{ tarih|date:'Y-m-d' }}&ogun={{ ogun }}">Bu öğünün menüsünü indir (görüntü ekibi için)</a></div>
+</form>
+
+<section class="kpi" aria-label="Öğün özeti">
+  <div class="ana"><div class="ad">Toplam israf oranı</div><div class="deger">{{ toplam.total_waste_rate|yuzde }}{% esik toplam.total_waste_rate "toplam" %}</div></div>
+  <div><div class="ad">Kazan artığı</div><div class="deger">{{ toplam.pot_rate|yuzde }}{% esik toplam.pot_rate "kazan" %}</div><div class="not">{{ toplam.leftover|porsiyon }} porsiyon</div></div>
+  <div><div class="ad">Bitirilmeyen tabak</div><div class="deger">{{ toplam.unfinished_rate|yuzde }}{% esik toplam.unfinished_rate "bitirilmeyen" %}</div><div class="not">{{ toplam.plates|porsiyon }} tabaktan</div></div>
+  <div><div class="ad">İsraf edilen porsiyon</div><div class="deger">{{ toplam.total_waste|porsiyon }}</div><div class="not">{{ toplam.produced|porsiyon }} porsiyon üretimden</div></div>
+</section>
+{% include "israf/_esik_aciklama.html" %}
+
+<section class="kart">
+  <div class="kart-basi"><h2>Menü ve sonuçlar</h2></div>
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr>
+      <th>Yemek</th><th class="sayi">Üretilen</th><th class="sayi">Artan</th><th class="sayi">Servis</th>
+      <th class="sayi">Bitiş</th><th class="sayi">Kazan artığı</th><th>Tabak durumu</th>
+      <th class="sayi">Tamamı / yarısı / dokunulmadı</th><th class="sayi">Bitirilmeyen</th><th class="sayi">Toplam israf</th>
+    </tr></thead>
+    <tbody>
+    {% for kategori, satirlar in gruplar %}
+      <tr class="grup-satiri"><td colspan="10">{{ kategori }}</td></tr>
+      {% for r in satirlar %}{% with m=r.measures %}
+      <tr>
+        <td><a href="{% url 'israf:yemek' r.dish.code %}">{{ r.dish.name }}</a></td>
+        <td class="sayi">{{ r.produced|porsiyon }}</td>
+        <td class="sayi">{{ r.leftover|porsiyon }}</td>
+        <td class="sayi">{{ r.served|porsiyon }}</td>
+        <td class="sayi">{% if r.ran_out_at %}{{ r.ran_out_at|time:"H:i" }}{% if r.run_out_position is not None %} <span class="soluk">({{ r.run_out_position|yuzde:0 }})</span>{% endif %}{% else %}<span class="soluk">tükenmedi</span>{% endif %}</td>
+        <td class="sayi">{% if r.dish.storable %}<span class="soluk" title="Saklanabilir ürün: artan stoka döner, israf sayılmaz">stoka döner</span>{% else %}{{ m.pot_rate|yuzde }}{% esik m.pot_rate "kazan" %}{% endif %}</td>
+        <td>{% durum_cubugu m %}</td>
+        <td class="sayi">{% if r.plates %}{{ m.finished }} / {{ m.half }} / {{ m.untouched }}{% if m.unknown %} <span class="soluk" title="Belirlenemeyen tabak">+{{ m.unknown }}?</span>{% endif %}{% else %}<span class="soluk">tepsi verisi yok</span>{% endif %}</td>
+        <td class="sayi">{{ m.unfinished_rate|yuzde }}{% esik m.unfinished_rate "bitirilmeyen" %}</td>
+        <td class="sayi">{{ m.total_waste_rate|yuzde }}{% esik m.total_waste_rate "toplam" %}</td>
+      </tr>
+      {% endwith %}{% endfor %}
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="lejant">
+    <span><i class="d-bitti"></i>Tamamı yendi</span>
+    <span><i class="d-yarim"></i>Yarısı yendi</span>
+    <span><i class="d-dokunulmadi"></i>Dokunulmadı</span>
+  </div>
+  <p class="aciklama">Bitiş sütunundaki yüzde, tükenme anının servis süresi içindeki yeridir (%0 açılış, %100 kapanış).</p>
+  {% if yetim %}<p class="aciklama"><span class="rozet uyari">Uyarı</span> Tepsi verisinde olup yemekhane kaydında olmayan: {% for s in yetim %}{{ s.dish.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
+</section>
+
+<div class="iki-sutun">
+  <section class="kart">
+    <div class="kart-basi"><h2>Seçenekler arası tercih</h2></div>
+    {% for c in ciftler %}
+      <h3>{{ c.category_label }}: {{ c.outcome }}</h3>
+      <div class="tablo-kap"><table class="tablo">
+        <thead><tr><th>Yemek</th><th class="sayi">Üretim payı</th><th class="sayi">Alım payı</th><th class="sayi">Bitiş</th></tr></thead>
+        <tbody>{% for s in c.sides %}<tr>
+          <td>{{ s.dish.name }}</td>
+          <td class="sayi">{{ c|cift_uretim_payi:s|yuzde }}</td>
+          <td class="sayi">{{ c|cift_alim_payi:s|yuzde }}</td>
+          <td class="sayi">{% if s.ran_out_at %}{{ s.ran_out_at|time:"H:i" }}{% else %}—{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    {% empty %}
+      <p class="soluk">Bu öğünde iki seçenekli ana yemek ya da yan yemek yok.</p>
+    {% endfor %}
+    <p class="aciklama">Alım payı, tükenme sonrası diğer seçeneğe mecburen geçenleri de içerir. Bu yüzden önce tükenen yemek, alım payının gösterdiğinden daha çok tercih edilmiş olabilir.</p>
+  </section>
+  <section class="kart">
+    <div class="kart-basi"><h2>Tepsi başına alım</h2></div>
+    {% if alim %}
+    <div class="tablo-kap"><table class="tablo">
+      <thead><tr><th>Kategori</th><th class="sayi">Tepsi başına</th></tr></thead>
+      <tbody>{% for ad, oran in alim %}<tr><td>{{ ad }}</td><td class="sayi">{{ oran|floatformat:2 }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <p class="aciklama">Alınan tabak ÷ analiz edilen tepsi ({{ tepsi|porsiyon }}).</p>
+    {% else %}<p class="soluk">Bu öğün için tepsi verisi yok.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

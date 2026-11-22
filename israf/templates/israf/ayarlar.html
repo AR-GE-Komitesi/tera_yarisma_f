@@ -1,0 +1,47 @@
+{% extends "israf/base.html" %}
+{% block title %}Ayarlar{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>Ayarlar</h1>
+    <p>Eşik profili ve varsayılan servis saatleri</p>
+  </div>
+</div>
+<form method="post">
+  {% csrf_token %}
+  <section class="kart">
+    <div class="kart-basi"><h2>Eşik profili</h2></div>
+    <p class="aciklama">Seçili profil, tablolarda eşiği aşan değerleri <span class="esik">▲</span> ile işaretler. Eşikler karar üretmez, menüden yemek çıkarmaz; yalnızca dikkat çeker. Değerler yüzdedir ve her profil için ayrı ayrı değiştirilebilir.</p>
+    <div class="profiller">
+      {% for profil, form in profiller %}
+      <div class="profil">
+        <label class="profil-basi"><input type="radio" name="etkin_profil" value="{{ profil.key }}" {% if profil.key == etkin %}checked{% endif %}> {{ profil.name }}</label>
+        {% for field in form %}
+        <label class="alan">{{ field.label }} (%){{ field }}</label>
+        {{ field.errors }}
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <ul class="aciklama" style="margin: 12px 0 0">
+      <li><strong>Bitirilmeyen tabak</strong>: yarısı yenen + dokunulmayan tabakların payı. "Çoğunluk bitiremiyor" sinyali.</li>
+      <li><strong>Kazan artığı</strong>: üretilip hiç servis edilmeyen payı. Üretim planlaması sinyali.</li>
+      <li><strong>Toplam israf</strong>: kazan artığı + tabakta kalan, üretime oranla.</li>
+    </ul>
+  </section>
+
+  <section class="kart">
+    <div class="kart-basi"><h2>Varsayılan servis saatleri</h2></div>
+    <p class="aciklama">O gün için öğün bilgisi (ogunler.csv) yüklenmediyse kullanılır. Tükenme anını servis süresinin yüzdesi olarak göstermek için gerekir.</p>
+    <div class="tablo-kap"><table class="tablo">
+      <thead><tr><th>Öğün</th><th>Açılış</th><th>Kapanış</th><th></th></tr></thead>
+      <tbody>
+      {% for saat, form in saatler %}
+        <tr><td>{{ saat.get_meal_display }}</td><td>{{ form.service_start }}</td><td>{{ form.service_end }}</td><td>{{ form.non_field_errors }}{{ form.service_start.errors }}{{ form.service_end.errors }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  <button class="dugme" type="submit">Kaydet</button>
+</form>
+{% endblock %}

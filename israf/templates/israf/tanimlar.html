@@ -1,0 +1,62 @@
+{% extends "israf/base.html" %}
+{% block title %}Tanımlar ve formatlar{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>Tanımlar ve formatlar</h1>
+    <p>Paneldeki her sayının nasıl hesaplandığı ve CSV dosyalarının kuralları</p>
+  </div>
+</div>
+
+<section class="kart">
+  <h2>Hesaplama tanımları</h2>
+  <p class="aciklama">Bir yemeğin bir öğündeki kaydı için: <strong>U</strong> üretilen porsiyon, <strong>A</strong> artan porsiyon, <strong>S = U − A</strong> servis edilen porsiyon; tepsilerden <strong>b</strong> tamamı yenen, <strong>y</strong> yarısı yenen, <strong>d</strong> dokunulmayan tabak; <strong>N = b + y + d</strong>.</p>
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr><th>Ölçü</th><th>Formül</th><th>Ne söyler</th></tr></thead>
+    <tbody>
+      <tr><td>Kazan artığı oranı</td><td><code>A ÷ U</code></td><td>Üretilip hiç servis edilmeyen pay. Üretim miktarı talebe göre fazla mı?</td></tr>
+      <tr><td>Bitirilmeyen tabak oranı</td><td><code>(y + d) ÷ N</code></td><td>Alıp bitirmeyenlerin payı. Çoğunluk bitiremiyorsa porsiyon büyük olabilir.</td></tr>
+      <tr><td>Dokunulmayan tabak oranı</td><td><code>d ÷ N</code></td><td>Alıp hiç yemeyenlerin payı. Yemeğin kendisi istenmiyor olabilir.</td></tr>
+      <tr><td>Tabak artığı oranı</td><td><code>({{ yarim_agirligi|floatformat:1 }}·y + d) ÷ N</code></td><td>Servis edilen yemeğin tabakta kalan payı. Yarısı yenen tabak yarım porsiyon sayılır.</td></tr>
+      <tr><td>Tabakta kalan porsiyon</td><td><code>S × tabak artığı oranı</code></td><td>Tepsilerden ölçülen oranın servis edilen porsiyona uygulanması.</td></tr>
+      <tr><td>Toplam israf</td><td><code>A + tabakta kalan porsiyon</code></td><td>Üretilip yenmeyen her şey, porsiyon cinsinden.</td></tr>
+      <tr><td>Toplam israf oranı</td><td><code>toplam israf ÷ U</code></td><td>Ana ölçü. Hedef bunu düşürmek.</td></tr>
+      <tr><td>Alım payı</td><td><code>S ÷ (S₁ + S₂)</code></td><td>Aynı öğündeki iki seçenekten birinin servis edilen payı. Tükenme sonrası mecburi geçişleri içerir.</td></tr>
+      <tr><td>Üretim payı</td><td><code>U ÷ (U₁ + U₂)</code></td><td>Yemekhanenin o seçeneğe ayırdığı pay. Alım payıyla karşılaştırılır.</td></tr>
+      <tr><td>Tükenme anı</td><td><code>(bitiş − açılış) ÷ (kapanış − açılış)</code></td><td>%0 servis açılırken, %100 kapanırken tükendi.</td></tr>
+      <tr><td>Tepsi başına alım</td><td><code>kategoriden alınan tabak ÷ tepsi sayısı</code></td><td>Salata ve içecek gibi isteğe bağlı kalemlerin ne kadar alındığı.</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="aciklama">
+    <li>Birden çok öğün birleştirilirken oranlar günlük oranların ortalaması değildir; toplamların oranıdır (porsiyon ağırlıklı). Kalabalık bir gün, sakin bir günden daha çok etkiler.</li>
+    <li>Toplam israf yalnızca hem yemekhane hem tepsi verisi olan kayıtlardan hesaplanır. Kazan artığı bütün yemekhane kayıtlarından, tabak oranları bütün tepsi verilerinden hesaplanır.</li>
+    <li><code>belirsiz</code> tabaklar oranlara katılmaz; Veri durumu sayfasında ayrıca gösterilir.</li>
+    <li>Kimse almadıysa (S = 0) tabak artığı sıfırdır; israfın tamamı kazandadır.</li>
+    <li>Katalogda <code>saklanabilir</code> işaretli ürünlerde (ör. kapalı ayran) artan miktar stoka döner: kazan artığı sayılmaz ve üretim tabanı servis edilen miktardır (U yerine S). Bu ürünlerin israfı yalnızca tabakta kalandır.</li>
+  </ul>
+</section>
+
+<section class="kart">
+  <h2>CSV formatları</h2>
+  <h3>Bütün dosyalar için</h3>
+  <ul class="aciklama">{% for kural in genel_kurallar %}<li>{{ kural }}</li>{% endfor %}</ul>
+  {% for f in formatlar %}
+  <div class="format" id="{{ f.kind }}">
+    <h3>{{ f.filename }} — {{ f.title }}</h3>
+    <dl>
+      <dt>Kim doldurur</dt><dd>{{ f.source }}</dd>
+      <dt>Ne sıklıkla</dt><dd>{{ f.frequency }}</dd>
+      <dt>Satır</dt><dd>{{ f.grain }}</dd>
+      <dt>Benzersiz anahtar</dt><dd><code>{{ f.key|join:" + " }}</code></dd>
+      <dt>Yeniden yükleme</dt><dd>{{ f.replace_rule }}</dd>
+    </dl>
+    <div class="tablo-kap"><table class="tablo">
+      <thead><tr><th>Sütun</th><th>Zorunlu</th><th>Açıklama</th><th>Örnek</th></tr></thead>
+      <tbody>{% for c in f.columns %}<tr><td><code>{{ c.name }}</code></td><td>{% if c.required %}Evet{% else %}Hayır{% endif %}</td><td>{{ c.description }}</td><td><code>{{ c.example }}</code></td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% if f.rules %}<ul>{% for r in f.rules %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+    <p class="aciklama"><a href="{% url 'israf:sablon' f.kind %}">Şablonu indir</a> · <a href="{% url 'israf:sablon' f.kind %}?excel=1">Excel (TR) şablonu</a></p>
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

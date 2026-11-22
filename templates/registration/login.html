@@ -1,0 +1,26 @@
+{% load static %}<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giriş · Yemekhane İsraf Analizi</title>
+  <link rel="icon" href="{% static 'israf/simge.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'israf/panel.css' %}">
+</head>
+<body>
+<main class="giris">
+  <div class="kart">
+    <h1>Yemekhane İsraf Analizi</h1>
+    <p class="aciklama">Yönetim paneline giriş</p>
+    {% if form.errors %}<ul class="mesajlar"><li class="error">Kullanıcı adı ya da parola hatalı.</li></ul>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label>Kullanıcı adı<input type="text" name="username" autocomplete="username" required autofocus value="{{ form.username.value|default:'' }}"></label>
+      <label>Parola<input type="password" name="password" autocomplete="current-password" required></label>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="dugme" type="submit">Giriş yap</button>
+    </form>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,68 @@
+{% extends "israf/base.html" %}
+{% load israf_tags %}
+{% block title %}İsraf sıralaması{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>İsraf sıralaması — {{ grup_adi|lower }} bazında</h1>
+    <p>{{ filtre.start|date:"d.m.Y" }} – {{ filtre.end|date:"d.m.Y" }} · {{ filtre.meal_label }} · ölçüt: {{ metrik.label|lower }}</p>
+  </div>
+  <a class="dugme ikincil" href="{% url 'israf:siralama_csv' %}{% if csv_qs %}?{{ csv_qs }}{% endif %}">CSV indir</a>
+</div>
+{% include "israf/_filtre.html" %}
+
+<form class="filtre" method="get" aria-label="Liste seçenekleri">
+  {% if filtre_qs %}{% for key, value in request.GET.items %}{% if key == "baslangic" or key == "bitis" or key == "ogun" %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}{% endif %}
+  <label>{{ form.grup.label }}<select name="grup">{% for value, label in form.fields.grup.choices %}<option value="{{ value }}" {% if value == secim.grup %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label>{{ form.kategori.label }}<select name="kategori">{% for value, label in form.fields.kategori.choices %}<option value="{{ value }}" {% if value == secim.kategori %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label>{{ form.metrik.label }}<select name="metrik">{% for value, label in form.fields.metrik.choices %}<option value="{{ value }}" {% if value == secim.metrik %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label>{{ form.min_cikis.label }}<input type="number" name="min_cikis" min="1" max="1000" value="{{ secim.min_cikis }}" style="width: 90px"></label>
+  <button class="dugme ikincil" type="submit">Listele</button>
+</form>
+{% include "israf/_esik_aciklama.html" %}
+
+<section class="kart">
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr>
+      <th class="sayi">#</th>
+      <th>{{ grup_adi }}</th>
+      {% if secim.grup == "yemek" %}<th>Kategori</th><th>Tür</th>{% endif %}
+      <th class="sayi">Çıkış</th>
+      <th class="sayi">Üretilen</th>
+      <th class="sayi"><a href="{% qs metrik='kazan' %}" {% if secim.metrik == 'kazan' %}aria-sort="descending"{% endif %}>Kazan artığı</a></th>
+      <th>Tabak durumu</th>
+      <th class="sayi"><a href="{% qs metrik='bitirilmeyen' %}" {% if secim.metrik == 'bitirilmeyen' %}aria-sort="descending"{% endif %}>Bitirilmeyen</a></th>
+      <th class="sayi"><a href="{% qs metrik='dokunulmayan' %}" {% if secim.metrik == 'dokunulmayan' %}aria-sort="descending"{% endif %}>Dokunulmayan</a></th>
+      <th class="sayi"><a href="{% qs metrik='tabak' %}" {% if secim.metrik == 'tabak' %}aria-sort="descending"{% endif %}>Tabak artığı</a></th>
+      <th class="sayi"><a href="{% qs metrik='toplam' %}" {% if secim.metrik == 'toplam' %}aria-sort="descending"{% endif %}>Toplam israf</a></th>
+      <th class="sayi"><a href="{% qs metrik='porsiyon' %}" {% if secim.metrik == 'porsiyon' %}aria-sort="descending"{% endif %}>İsraf (porsiyon)</a></th>
+    </tr></thead>
+    <tbody>
+    {% for g in gruplar %}{% with m=g.measures %}
+      <tr>
+        <td class="sayi soluk">{{ forloop.counter }}</td>
+        <td>{% if g.dish %}<a href="{% url 'israf:yemek' g.dish.code %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}">{{ g.label }}</a>{% else %}{{ g.label }}{% endif %}</td>
+        {% if secim.grup == "yemek" %}<td>{{ g.category_label }}</td><td>{{ g.food_type|default:"—" }}</td>{% endif %}
+        <td class="sayi">{{ m.appearances }}</td>
+        <td class="sayi">{{ m.produced|porsiyon }}</td>
+        <td class="sayi">{{ m.pot_rate|yuzde }}{% esik m.pot_rate "kazan" %}</td>
+        <td>{% durum_cubugu m %}</td>
+        <td class="sayi">{{ m.unfinished_rate|yuzde }}{% esik m.unfinished_rate "bitirilmeyen" %}</td>
+        <td class="sayi">{{ m.untouched_rate|yuzde }}</td>
+        <td class="sayi">{{ m.plate_waste_rate|yuzde }}</td>
+        <td class="sayi">{{ m.total_waste_rate|yuzde }}{% esik m.total_waste_rate "toplam" %}</td>
+        <td class="sayi">{{ m.total_waste|porsiyon }}</td>
+      </tr>
+    {% endwith %}{% empty %}
+      <tr><td colspan="13" class="soluk">Seçimlere uyan kayıt yok.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="lejant">
+    <span><i class="d-bitti"></i>Tamamı yendi</span>
+    <span><i class="d-yarim"></i>Yarısı yendi</span>
+    <span><i class="d-dokunulmadi"></i>Dokunulmadı</span>
+  </div>
+  <p class="aciklama">Oranlar dönemdeki toplamlardan hesaplanır (porsiyon ağırlıklı). "Çıkış", yemeğin menüye girdiği öğün sayısıdır; az çıkan yemeklerin oranı tek günün koşullarından etkilenebilir. Tanımlar için <a href="{% url 'israf:tanimlar' %}">Tanımlar</a> sayfasına bakın.</p>
+</section>
+{% endblock %}

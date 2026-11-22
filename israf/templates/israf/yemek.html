@@ -1,0 +1,89 @@
+{% extends "israf/base.html" %}
+{% load static israf_tags %}
+{% block title %}{{ yemek.name }}{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>{{ yemek.name }}</h1>
+    <p>{{ yemek.get_category_display }}{% if yemek.food_type %} · {{ yemek.food_type }}{% endif %} · kod <code>{{ yemek.code }}</code> · {{ toplam.appearances }} çıkış{% if yemek.storable %} · <span class="rozet" title="Artan stoka döner; israf yalnızca tabakta kalandır">saklanabilir</span>{% endif %}</p>
+  </div>
+</div>
+{% include "israf/_filtre.html" %}
+
+<section class="kpi" aria-label="Yemek özeti">
+  <div class="ana"><div class="ad">Toplam israf oranı</div><div class="deger">{{ toplam.total_waste_rate|yuzde }}{% esik toplam.total_waste_rate "toplam" %}</div></div>
+  <div><div class="ad">Kazan artığı</div><div class="deger">{{ toplam.pot_rate|yuzde }}{% esik toplam.pot_rate "kazan" %}</div></div>
+  <div><div class="ad">Bitirilmeyen tabak</div><div class="deger">{{ toplam.unfinished_rate|yuzde }}{% esik toplam.unfinished_rate "bitirilmeyen" %}</div></div>
+  <div><div class="ad">Dokunulmayan tabak</div><div class="deger">{{ toplam.untouched_rate|yuzde }}</div></div>
+  <div><div class="ad">İsraf edilen porsiyon</div><div class="deger">{{ toplam.total_waste|porsiyon }}</div><div class="not">{{ toplam.complete_produced|porsiyon }} porsiyon üretimden</div></div>
+  {% if tercih %}<div><div class="ad">Rakibinden önce tükendi</div><div class="deger">{{ tercih.first_out }}/{{ tercih.pairs }}</div><div class="not">ort. alım payı {{ tercih.avg_share|yuzde }}</div></div>{% endif %}
+</section>
+{% include "israf/_esik_aciklama.html" %}
+
+{% if grafik.labels %}
+<section class="kart">
+  <div class="kart-basi"><h2>Çıktığı öğünlerde toplam israf</h2></div>
+  <div class="lejant">
+    <span><i class="l-pot"></i>Kazan artığı</span>
+    <span><i class="l-plate"></i>Tabak artığı</span>
+    <span><i class="cizgi"></i>{{ esik_profili.name }} eşiği</span>
+  </div>
+  <div class="grafik" data-kaynak="yemek-veri" role="img" aria-label="Öğün başına toplam israf oranı; değerler aşağıdaki tabloda"><canvas></canvas></div>
+  {{ grafik|json_script:"yemek-veri" }}
+</section>
+{% endif %}
+
+<section class="kart">
+  <div class="kart-basi"><h2>Öğün geçmişi</h2></div>
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr>
+      <th>Öğün</th><th class="sayi">Üretilen</th><th class="sayi">Artan</th><th class="sayi">Bitiş</th>
+      <th class="sayi">Kazan artığı</th><th>Tabak durumu</th><th class="sayi">Tamamı / yarısı / dokunulmadı</th>
+      <th class="sayi">Bitirilmeyen</th><th class="sayi">Toplam israf</th>
+    </tr></thead>
+    <tbody>
+    {% for r in kayitlar %}{% with m=r.measures %}
+      <tr>
+        <td><a href="{% url 'israf:gun' %}?tarih={{ r.date|date:'Y-m-d' }}&ogun={{ r.meal }}">{{ r.date|date:"d.m.Y D" }} {{ r.meal_label }}</a></td>
+        <td class="sayi">{{ r.produced|porsiyon }}</td>
+        <td class="sayi">{{ r.leftover|porsiyon }}</td>
+        <td class="sayi">{% if r.ran_out_at %}{{ r.ran_out_at|time:"H:i" }}{% else %}<span class="soluk">—</span>{% endif %}</td>
+        <td class="sayi">{% if yemek.storable %}<span class="soluk">stoka döner</span>{% else %}{{ m.pot_rate|yuzde }}{% esik m.pot_rate "kazan" %}{% endif %}</td>
+        <td>{% durum_cubugu m %}</td>
+        <td class="sayi">{% if r.plates %}{{ m.finished }} / {{ m.half }} / {{ m.untouched }}{% else %}<span class="soluk">tepsi verisi yok</span>{% endif %}</td>
+        <td class="sayi">{{ m.unfinished_rate|yuzde }}{% esik m.unfinished_rate "bitirilmeyen" %}</td>
+        <td class="sayi">{{ m.total_waste_rate|yuzde }}{% esik m.total_waste_rate "toplam" %}</td>
+      </tr>
+    {% endwith %}{% empty %}
+      <tr><td colspan="9" class="soluk">Bu dönemde kayıt yok.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+{% if ciftler %}
+<section class="kart">
+  <div class="kart-basi"><h2>Rakipleriyle eşleşmeler</h2></div>
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr><th>Öğün</th><th>Rakip</th><th class="sayi">Alım payı</th><th class="sayi">Üretim payı</th><th>Sonuç</th></tr></thead>
+    <tbody>
+    {% for c in ciftler %}
+      <tr>
+        <td>{{ c.date|date:"d.m.Y" }} {{ c.meal_label }}</td>
+        {% if c.a.dish.pk == yemek.pk %}
+        <td>{{ c.b.dish.name }}</td><td class="sayi">{{ c|cift_alim_payi:c.a|yuzde }}</td><td class="sayi">{{ c|cift_uretim_payi:c.a|yuzde }}</td>
+        {% else %}
+        <td>{{ c.a.dish.name }}</td><td class="sayi">{{ c|cift_alim_payi:c.b|yuzde }}</td><td class="sayi">{{ c|cift_uretim_payi:c.b|yuzde }}</td>
+        {% endif %}
+        <td>{{ c.outcome }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'israf/vendor/chart.umd.min.js' %}"></script>
+<script src="{% static 'israf/grafik.js' %}"></script>
+{% endblock %}

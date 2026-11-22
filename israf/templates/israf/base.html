@@ -1,0 +1,46 @@
+{% load static %}<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Panel{% endblock %} · Yemekhane İsraf Analizi</title>
+  <link rel="icon" href="{% static 'israf/simge.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'israf/panel.css' %}">
+</head>
+<body>
+<div class="duzen">
+  <nav class="kenar" aria-label="Ana menü">
+    <a class="marka" href="{% url 'israf:genel' %}">Yemekhane İsraf Analizi<small>Yönetim paneli</small></a>
+    {% with ad=request.resolver_match.url_name %}
+    <ul class="menu">
+      <li class="menu-baslik">Analiz</li>
+      <li><a href="{% url 'israf:genel' %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}" {% if ad == 'genel' %}aria-current="page"{% endif %}>Genel bakış</a></li>
+      <li><a href="{% url 'israf:gun' %}" {% if ad == 'gun' %}aria-current="page"{% endif %}>Gün detayı</a></li>
+      <li><a href="{% url 'israf:siralama' %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}" {% if ad == 'siralama' %}aria-current="page"{% endif %}>İsraf sıralaması</a></li>
+      <li><a href="{% url 'israf:tercih' %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}" {% if ad == 'tercih' %}aria-current="page"{% endif %}>Tercih analizi</a></li>
+      <li class="menu-baslik">Veri</li>
+      <li><a href="{% url 'israf:veri' %}" {% if ad == 'veri' or ad == 'aktarim' %}aria-current="page"{% endif %}>Veri yükleme</a></li>
+      <li><a href="{% url 'israf:durum' %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}" {% if ad == 'durum' %}aria-current="page"{% endif %}>Veri durumu</a></li>
+      <li class="menu-baslik">Sistem</li>
+      {% if user.is_staff %}<li><a href="{% url 'israf:ayarlar' %}" {% if ad == 'ayarlar' %}aria-current="page"{% endif %}>Ayarlar</a></li>{% endif %}
+      <li><a href="{% url 'israf:tanimlar' %}" {% if ad == 'tanimlar' %}aria-current="page"{% endif %}>Tanımlar ve formatlar</a></li>
+      {% if user.is_staff %}<li><a href="{% url 'admin:index' %}">Yönetim (kullanıcılar, katalog)</a></li>{% endif %}
+    </ul>
+    {% endwith %}
+    <div class="kullanici">
+      {{ user.get_full_name|default:user.username }}
+      · <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Çıkış</button></form>
+    </div>
+  </nav>
+  <main class="icerik" id="icerik">
+    {% if messages %}
+    <ul class="mesajlar" role="status">
+      {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

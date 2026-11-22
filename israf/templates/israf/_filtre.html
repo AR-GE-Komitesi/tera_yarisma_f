@@ -1,0 +1,13 @@
+{% load israf_tags %}{% diger_parametreler as ek_alanlar %}{% diger_qs as ek_qs %}
+<form class="filtre" method="get" aria-label="Dönem ve öğün filtresi">
+  {% for name, value in ek_alanlar %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+  <label>{{ filtre.form.baslangic.label }}{{ filtre.form.baslangic }}</label>
+  <label>{{ filtre.form.bitis.label }}{{ filtre.form.bitis }}</label>
+  <label>{{ filtre.form.ogun.label }}{{ filtre.form.ogun }}</label>
+  <button class="dugme ikincil" type="submit">Uygula</button>
+  <div class="hazir" aria-label="Hazır dönemler">
+    {% for p in filtre.presets %}
+    <a href="?{{ p.qs }}{{ ek_qs }}" {% if p.active %}aria-current="true"{% endif %}>{{ p.label }}</a>
+    {% endfor %}
+  </div>
+</form>

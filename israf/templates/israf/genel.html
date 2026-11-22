@@ -1,0 +1,136 @@
+{% extends "israf/base.html" %}
+{% load static israf_tags %}
+{% block title %}Genel bakış{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>Genel bakış</h1>
+    <p>{{ filtre.start|date:"d.m.Y" }} – {{ filtre.end|date:"d.m.Y" }} · {{ filtre.meal_label }} · {{ ogun_sayisi }} öğün</p>
+  </div>
+</div>
+{% include "israf/_filtre.html" %}
+
+<section class="kpi" aria-label="Dönem özeti">
+  <div class="ana">
+    <div class="ad">Toplam israf oranı</div>
+    <div class="deger">{{ toplam.total_waste_rate|yuzde }}{% esik toplam.total_waste_rate "toplam" %}</div>
+    <div class="not">Üretilenin israf edilen payı</div>
+  </div>
+  <div>
+    <div class="ad">Kazan artığı</div>
+    <div class="deger">{{ toplam.pot_rate|yuzde }}{% esik toplam.pot_rate "kazan" %}</div>
+    <div class="not">Servis edilmeden kalan</div>
+  </div>
+  <div>
+    <div class="ad">Tabak artığı</div>
+    <div class="deger">{{ toplam.plate_waste_rate|yuzde }}</div>
+    <div class="not">Servis edilenin tabakta kalan payı</div>
+  </div>
+  <div>
+    <div class="ad">Bitirilmeyen tabak</div>
+    <div class="deger">{{ toplam.unfinished_rate|yuzde }}{% esik toplam.unfinished_rate "bitirilmeyen" %}</div>
+    <div class="not">Yarısı yenen + dokunulmayan</div>
+  </div>
+  <div>
+    <div class="ad">İsraf edilen porsiyon</div>
+    <div class="deger">{{ toplam.total_waste|porsiyon }}</div>
+    <div class="not">{{ toplam.complete_produced|porsiyon }} porsiyon üretimden</div>
+  </div>
+  <div>
+    <div class="ad">Analiz edilen tepsi</div>
+    <div class="deger">{{ tepsi|porsiyon }}</div>
+    <div class="not">{{ tepsili_ogun }}/{{ ogun_sayisi }} öğünde tepsi verisi var</div>
+  </div>
+</section>
+{% include "israf/_esik_aciklama.html" %}
+{% if tepsili_ogun < ogun_sayisi or yetim %}
+<p class="aciklama">Toplam israf yalnızca hem yemekhane hem tepsi verisi olan kayıtlardan hesaplanır.
+  {% if yetim %}{{ yetim }} tepsi özetinin yemekhane kaydı yok.{% endif %}
+  <a href="{% url 'israf:durum' %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}">Veri durumunu gör</a></p>
+{% endif %}
+
+<section class="kart">
+  <div class="kart-basi">
+    <h2>{% if haftalik %}Haftalık{% else %}Günlük{% endif %} toplam israf oranı</h2>
+    <span class="aciklama">Çubuk yüksekliği = toplam israf oranı</span>
+  </div>
+  <div class="lejant">
+    <span><i class="l-pot"></i>Kazan artığı</span>
+    <span><i class="l-plate"></i>Tabak artığı</span>
+    <span><i class="cizgi"></i>{{ esik_profili.name }} eşiği</span>
+  </div>
+  {% if egilim %}
+  <div class="grafik" data-kaynak="egilim-veri" role="img" aria-label="{% if haftalik %}Haftalık{% else %}Günlük{% endif %} toplam israf oranı grafiği; değerler aşağıdaki tabloda"><canvas></canvas></div>
+  {{ egilim_grafik|json_script:"egilim-veri" }}
+  <details class="tablo-gorunumu">
+    <summary>Tablo görünümü</summary>
+    <div class="tablo-kap"><table class="tablo">
+      <thead><tr><th>{% if haftalik %}Hafta{% else %}Gün{% endif %}</th><th class="sayi">Kazan artığı</th><th class="sayi">Tabak artığı</th><th class="sayi">Toplam israf</th><th class="sayi">Üretilen</th></tr></thead>
+      <tbody>{% for etiket, m in egilim %}<tr><td>{{ etiket }}</td><td class="sayi">{{ m.pot_share|yuzde }}</td><td class="sayi">{{ m.plate_share|yuzde }}</td><td class="sayi">{{ m.total_waste_rate|yuzde }}{% esik m.total_waste_rate "toplam" %}</td><td class="sayi">{{ m.complete_produced|porsiyon }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </details>
+  {% else %}
+  <p class="soluk">Bu dönemde hem yemekhane hem tepsi verisi olan öğün yok.</p>
+  {% endif %}
+</section>
+
+<section class="kart">
+  <div class="kart-basi">
+    <h2>Kategorilere göre</h2>
+    <a href="{% url 'israf:siralama' %}?grup=kategori{% if filtre_qs %}&{{ filtre_qs }}{% endif %}">Kategori listesi</a>
+  </div>
+  {% if kategori_grafik.labels %}
+  <div class="lejant">
+    <span><i class="l-pot"></i>Kazan artığı</span>
+    <span><i class="l-plate"></i>Tabak artığı</span>
+    <span><i class="cizgi"></i>{{ esik_profili.name }} eşiği</span>
+  </div>
+  <div class="grafik yatay" data-kaynak="kategori-veri" data-yon="yatay" role="img" aria-label="Kategorilere göre toplam israf oranı; değerler aşağıdaki tabloda"><canvas></canvas></div>
+  {{ kategori_grafik|json_script:"kategori-veri" }}
+  {% endif %}
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr>
+      <th>Kategori</th><th class="sayi">Çıkış</th><th class="sayi">Üretilen</th><th class="sayi">Kazan artığı</th>
+      <th>Tabak durumu</th><th class="sayi">Bitirilmeyen</th><th class="sayi">Dokunulmayan</th>
+      <th class="sayi">Toplam israf</th><th class="sayi">Tepsi başına alım</th>
+    </tr></thead>
+    <tbody>
+    {% for g in kategoriler %}{% with m=g.measures %}
+      <tr>
+        <td>{{ g.label }}</td>
+        <td class="sayi">{{ m.appearances }}</td>
+        <td class="sayi">{{ m.produced|porsiyon }}</td>
+        <td class="sayi">{{ m.pot_rate|yuzde }}{% esik m.pot_rate "kazan" %}</td>
+        <td>{% durum_cubugu m %}</td>
+        <td class="sayi">{{ m.unfinished_rate|yuzde }}{% esik m.unfinished_rate "bitirilmeyen" %}</td>
+        <td class="sayi">{{ m.untouched_rate|yuzde }}</td>
+        <td class="sayi">{{ m.total_waste_rate|yuzde }}{% esik m.total_waste_rate "toplam" %}</td>
+        <td class="sayi">{% if g.take_rate is not None %}{{ g.take_rate|floatformat:2 }}{% else %}—{% endif %}</td>
+      </tr>
+    {% endwith %}{% endfor %}
+    </tbody>
+  </table></div>
+  <div class="lejant">
+    <span><i class="d-bitti"></i>Tamamı yendi</span>
+    <span><i class="d-yarim"></i>Yarısı yendi</span>
+    <span><i class="d-dokunulmadi"></i>Dokunulmadı</span>
+  </div>
+  <p class="aciklama">Tepsi başına alım: o kategoriden alınan tabak ÷ analiz edilen tepsi. Örneğin salata için 0,48 = tepsilerin yaklaşık yarısında salata var.</p>
+</section>
+
+<div class="iki-sutun">
+  <section class="kart">
+    <div class="kart-basi"><h2>En yüksek toplam israf</h2>
+      <a href="{% url 'israf:siralama' %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}">Tüm liste</a></div>
+    {% include "israf/_kisa_liste.html" with liste=en_cok %}
+  </section>
+  <section class="kart">
+    <div class="kart-basi"><h2>En düşük toplam israf</h2></div>
+    {% if en_az %}{% include "israf/_kisa_liste.html" with liste=en_az %}{% else %}<p class="soluk">Karşılaştırma için en az altı yemek gerekir.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'israf/vendor/chart.umd.min.js' %}"></script>
+<script src="{% static 'israf/grafik.js' %}"></script>
+{% endblock %}

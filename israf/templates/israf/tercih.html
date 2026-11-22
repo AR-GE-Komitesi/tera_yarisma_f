@@ -1,0 +1,76 @@
+{% extends "israf/base.html" %}
+{% load israf_tags %}
+{% block title %}Tercih analizi{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>Tercih analizi</h1>
+    <p>{{ filtre.start|date:"d.m.Y" }} – {{ filtre.end|date:"d.m.Y" }} · {{ filtre.meal_label }} · {{ cift_sayisi }} eşleşme</p>
+  </div>
+</div>
+{% include "israf/_filtre.html" %}
+<div class="filtre" role="group" aria-label="Kategori">
+  <div class="hazir" style="margin-left: 0">
+    <a href="?{{ filtre_qs }}" {% if not kategori %}aria-current="true"{% endif %}>Ana ve yan yemek</a>
+    {% for value, label in kategori_secenekleri %}
+    <a href="?kategori={{ value }}{% if filtre_qs %}&{{ filtre_qs }}{% endif %}" {% if kategori == value %}aria-current="true"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<p class="aciklama">Her öğünde ana yemek ve yan yemekten ikişer seçenek çıkar; öğrenci birini alır. Bir seçenek tükenince sonra gelenler diğerini almak zorunda kalır.
+  Bu yüzden iki ölçü birlikte okunmalı: <strong>rakibinden önce tükenme</strong> talebin üretimi aştığını, <strong>üretim payı ile alım payı</strong> arasındaki fark yemekhanenin talebi ne kadar doğru tahmin ettiğini gösterir.</p>
+
+{% for kategori_adi, satirlar in bolumler %}
+<section class="kart">
+  <div class="kart-basi"><h2>{{ kategori_adi }}</h2></div>
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr>
+      <th>Yemek</th><th class="sayi">Eşleşme</th><th class="sayi">Tükendi</th>
+      <th class="sayi">Rakibinden önce tükendi</th><th class="sayi">Rakibi önce tükendi</th>
+      <th class="sayi">Ort. üretim payı</th><th class="sayi">Ort. alım payı</th><th class="sayi">Ort. tükenme anı</th>
+    </tr></thead>
+    <tbody>
+    {% for p in satirlar %}
+      <tr>
+        <td><a href="{% url 'israf:yemek' p.dish.code %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}">{{ p.dish.name }}</a></td>
+        <td class="sayi">{{ p.pairs }}</td>
+        <td class="sayi">{{ p.ran_out }}</td>
+        <td class="sayi">{{ p.first_out }} <span class="soluk">({{ p.first_out_rate|yuzde:0 }})</span></td>
+        <td class="sayi">{{ p.rival_first }}</td>
+        <td class="sayi">{{ p.avg_production_share|yuzde }}</td>
+        <td class="sayi">{{ p.avg_share|yuzde }}</td>
+        <td class="sayi">{{ p.avg_position|yuzde:0 }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="aciklama">Ort. tükenme anı: yemeğin tükendiği öğünlerde tükenme anının servis süresindeki ortalama yeri (%0 açılış, %100 kapanış). Küçük değer = erken tükendi.</p>
+</section>
+{% empty %}
+<div class="kart"><p class="soluk">Bu dönemde iki seçenekli ana yemek ya da yan yemek bulunan öğün yok.</p></div>
+{% endfor %}
+
+{% if ciftler %}
+<section class="kart">
+  <div class="kart-basi"><h2>Öğün öğün eşleşmeler</h2>
+    <span class="aciklama">{% if cift_sayisi > cift_sinir %}Son {{ cift_sinir }} eşleşme gösteriliyor{% else %}{{ cift_sayisi }} eşleşme{% endif %}</span></div>
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr><th>Öğün</th><th>Kategori</th><th>Seçenekler</th><th class="sayi">Üretim payı</th><th class="sayi">Alım payı</th><th class="sayi">Bitiş</th><th>Sonuç</th></tr></thead>
+    <tbody>
+    {% for c in ciftler %}
+      <tr>
+        <td><a href="{% url 'israf:gun' %}?tarih={{ c.date|date:'Y-m-d' }}&ogun={{ c.meal }}">{{ c.date|date:"d.m.Y" }} {{ c.meal_label }}</a></td>
+        <td>{{ c.category_label }}</td>
+        <td>{{ c.a.dish.name }}<br>{{ c.b.dish.name }}</td>
+        <td class="sayi">{{ c|cift_uretim_payi:c.a|yuzde }}<br>{{ c|cift_uretim_payi:c.b|yuzde }}</td>
+        <td class="sayi">{{ c|cift_alim_payi:c.a|yuzde }}<br>{{ c|cift_alim_payi:c.b|yuzde }}</td>
+        <td class="sayi">{{ c.a.ran_out_at|time:"H:i"|default:"—" }}<br>{{ c.b.ran_out_at|time:"H:i"|default:"—" }}</td>
+        <td>{{ c.outcome }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}

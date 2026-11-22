@@ -1,0 +1,16 @@
+{% extends "israf/base.html" %}
+{% block title %}Veri yok{% endblock %}
+{% block content %}
+<div class="sayfa-basi"><div><h1>Henüz analiz edilecek veri yok</h1></div></div>
+<div class="kart">
+  <p>Analiz için en az bir yemekhane günlük kaydı gerekir. Yükleme sırası:</p>
+  <ol>
+    <li><strong>yemekler.csv</strong> — yemek kataloğu (kodlar, kategoriler, türler)</li>
+    <li><strong>ogunler.csv</strong> — isteğe bağlı, yalnızca servis saati farklı olan günler</li>
+    <li><strong>uretim.csv</strong> — yemekhanenin günlük kaydı (üretilen, artan, bitiş saati)</li>
+    <li><strong>tepsiler.csv</strong> — görüntü işleme çıktısı</li>
+  </ol>
+  <p><a class="dugme" href="{% url 'israf:veri' %}">Veri yükleme sayfasına git</a>
+  <a class="dugme ikincil" href="{% url 'israf:tanimlar' %}">Formatları gör</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "israf/base.html" %}
+{% block title %}Veri yükleme{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>Veri yükleme</h1>
+    <p>Katalogda {{ yemek_sayisi }} yemek var{% if son_tarih %} · son yemekhane kaydı {{ son_tarih|date:"d.m.Y" }}{% endif %}</p>
+  </div>
+</div>
+
+{% if user.is_staff %}
+<section class="kart">
+  <div class="kart-basi"><h2>CSV yükle</h2><a href="{% url 'israf:tanimlar' %}">Format kuralları</a></div>
+  <form method="post" enctype="multipart/form-data" class="form-satiri">
+    {% csrf_token %}
+    <label>{{ form.tur.label }}{{ form.tur }}</label>
+    <label>{{ form.dosya.label }}{{ form.dosya }}</label>
+    <button class="dugme" type="submit">Yükle ve doğrula</button>
+  </form>
+  {{ form.non_field_errors }}{{ form.tur.errors }}{{ form.dosya.errors }}
+  <p class="aciklama" style="margin-top: 10px">Dosya önce bütünüyle doğrulanır. Tek bir hatalı satır varsa hiçbir şey yazılmaz ve hatalar satır numarasıyla listelenir. Aynı öğünü yeniden yüklemek öncekinin yerine geçer.</p>
+</section>
+{% else %}
+<div class="kart"><p class="soluk">Veri yüklemek için yönetici yetkisi gerekir.</p></div>
+{% endif %}
+
+<div class="iki-sutun bosluk">
+  <section class="kart">
+    <div class="kart-basi"><h2>Şablonlar</h2></div>
+    <div class="tablo-kap"><table class="tablo">
+      <thead><tr><th>Dosya</th><th>Kim doldurur</th><th>İndir</th></tr></thead>
+      <tbody>
+      {% for f in formatlar %}
+        <tr>
+          <td><strong>{{ f.filename }}</strong><br><span class="soluk">{{ f.title }}</span></td>
+          <td>{{ f.source }}</td>
+          <td><a href="{% url 'israf:sablon' f.kind %}">CSV</a> · <a href="{% url 'israf:sablon' f.kind %}?excel=1" title="Noktalı virgül ayraçlı, Türkçe Excel'de doğrudan açılır">Excel (TR)</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  <section class="kart">
+    <div class="kart-basi"><h2>Görüntü işleme ekibi için</h2></div>
+    <p>Görüntü işleme çıktısındaki <code>yemek_kodu</code> değerleri bu paneldeki kodlarla aynı olmalı. Ekip, etiketlemeden önce şu dosyaları alır:</p>
+    <ul>
+      <li><a href="{% url 'israf:katalog_csv' %}">Yemek kataloğu</a> — bütün kodlar ve kategoriler</li>
+      <li>{% if son_tarih %}<a href="{% url 'israf:menu_csv' %}">Son öğünün menüsü</a> ({{ son_tarih|date:"d.m.Y" }}){% else %}Son öğünün menüsü (yemekhane kaydı yüklenince){% endif %}</li>
+    </ul>
+    <p class="aciklama">Belirli bir günün menüsü Gün detayı sayfasından indirilir. Tarih aralığı için: <code>/veri/menu.csv?baslangic=2026-11-01&amp;bitis=2026-11-30</code></p>
+  </section>
+</div>
+
+<section class="kart">
+  <div class="kart-basi"><h2>Son yüklemeler</h2></div>
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr><th>Zaman</th><th>Tür</th><th>Dosya</th><th>Durum</th><th class="sayi">Satır</th><th class="sayi">Hata</th><th class="sayi">Uyarı</th><th>Yükleyen</th></tr></thead>
+    <tbody>
+    {% for y in yuklemeler %}
+      <tr>
+        <td><a href="{% url 'israf:aktarim' y.pk %}">{{ y.uploaded_at|date:"d.m.Y H:i" }}</a></td>
+        <td>{{ y.get_kind_display }}</td>
+        <td>{{ y.original_name }}</td>
+        <td>{% if y.status == "basarili" %}<span class="rozet iyi">✓ Yüklendi</span>{% else %}<span class="rozet hata">✕ Reddedildi</span>{% endif %}</td>
+        <td class="sayi">{{ y.row_count }}</td>
+        <td class="sayi">{{ y.error_count }}</td>
+        <td class="sayi">{{ y.warning_count }}</td>
+        <td>{{ y.uploaded_by|default:"komut satırı" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8" class="soluk">Henüz yükleme yok.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

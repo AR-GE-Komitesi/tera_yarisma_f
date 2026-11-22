@@ -1,0 +1,52 @@
+{% extends "israf/base.html" %}
+{% block title %}Yükleme raporu{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>Yükleme raporu</h1>
+    <p>{{ yukleme.get_kind_display }} · {{ yukleme.original_name }} · {{ yukleme.uploaded_at|date:"d.m.Y H:i" }} · {{ yukleme.uploaded_by|default:"komut satırı" }}</p>
+  </div>
+  <div class="gezinme">
+    {% if yukleme.stored_file %}<a class="dugme ikincil" href="{% url 'israf:aktarim_dosya' yukleme.pk %}">Arşivdeki dosyayı indir</a>{% endif %}
+    <a class="dugme ikincil" href="{% url 'israf:veri' %}?tur={{ yukleme.kind }}">Yeni dosya yükle</a>
+  </div>
+</div>
+
+<section class="kpi">
+  <div class="ana"><div class="ad">Durum</div><div class="deger">{% if yukleme.status == "basarili" %}✓ Yüklendi{% else %}✕ Reddedildi{% endif %}</div><div class="not">{{ yukleme.summary }}</div></div>
+  <div><div class="ad">Satır</div><div class="deger">{{ yukleme.row_count }}</div></div>
+  <div><div class="ad">Hata</div><div class="deger">{{ yukleme.error_count }}</div></div>
+  <div><div class="ad">Uyarı</div><div class="deger">{{ yukleme.warning_count }}</div></div>
+</section>
+
+{% if hatalar %}
+<section class="kart">
+  <div class="kart-basi"><h2>Hatalar</h2><span class="aciklama">Düzeltip dosyanın tamamını yeniden yükleyin.</span></div>
+  <ul class="liste-mesaj">
+    {% for m in hatalar %}<li class="hata">{% if m.row %}<span class="yer">Satır {{ m.row }}{% if m.column %} · {{ m.column }}{% endif %}</span>{% endif %}{{ m.text }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if uyarilar %}
+<section class="kart">
+  <div class="kart-basi"><h2>Uyarılar</h2><span class="aciklama">Yüklemeyi durdurmaz; verinin doğruluğunu kontrol etmek için.</span></div>
+  <ul class="liste-mesaj">
+    {% for m in uyarilar %}<li class="uyari">{% if m.row %}<span class="yer">Satır {{ m.row }}{% if m.column %} · {{ m.column }}{% endif %}</span>{% endif %}{{ m.text }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if etkilenen %}
+<section class="kart">
+  <div class="kart-basi"><h2>Güncellenen öğünler</h2></div>
+  <p>{% for e in etkilenen %}<a href="{% url 'israf:gun' %}?tarih={{ e.tarih|date:'Y-m-d' }}&ogun={{ e.ogun }}">{{ e.tarih|date:"d.m.Y" }} {{ e.ad }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+</section>
+{% endif %}
+
+<section class="kart">
+  <div class="kart-basi"><h2>Beklenen format: {{ format.filename }}</h2></div>
+  <p><code>{{ format.column_names|join:"," }}</code></p>
+  <p class="aciklama">{{ format.grain }}. {{ format.replace_rule }} <a href="{% url 'israf:tanimlar' %}#{{ format.kind }}">Ayrıntılar</a></p>
+</section>
+{% endblock %}

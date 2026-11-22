@@ -1,0 +1,41 @@
+{% extends "israf/base.html" %}
+{% load israf_tags %}
+{% block title %}Veri durumu{% endblock %}
+{% block content %}
+<div class="sayfa-basi">
+  <div>
+    <h1>Veri durumu</h1>
+    <p>Her öğün için hangi verinin geldiği ve tutarlı olup olmadığı</p>
+  </div>
+</div>
+{% include "israf/_filtre.html" %}
+<section class="kart">
+  <div class="tablo-kap"><table class="tablo">
+    <thead><tr>
+      <th>Öğün</th><th class="sayi">Yemekhane kaydı</th><th class="sayi">Tepsi özeti</th><th class="sayi">Tepsi</th>
+      <th class="sayi">Ana yemek kapsaması</th><th class="sayi">Belirsiz tabak</th><th>Ana / yan</th><th>Sorunlar</th>
+    </tr></thead>
+    <tbody>
+    {% for s in satirlar %}
+      <tr>
+        <td><a href="{% url 'israf:gun' %}?tarih={{ s.date|date:'Y-m-d' }}&ogun={{ s.meal }}">{{ s.date|date:"d.m.Y D" }} {{ s.meal_label }}</a>{% if s.session_note %}<br><span class="soluk">{{ s.session_note }}</span>{% endif %}</td>
+        <td class="sayi">{% if s.production_rows %}{{ s.production_rows }} yemek{% else %}<span class="rozet hata">✕ yok</span>{% endif %}</td>
+        <td class="sayi">{% if s.plate_rows %}{{ s.plate_rows }} yemek{% else %}<span class="rozet uyari">! yok</span>{% endif %}</td>
+        <td class="sayi">{{ s.trays|default_if_none:"—" }}</td>
+        <td class="sayi">{{ s.coverage|yuzde }}</td>
+        <td class="sayi">{{ s.unknown_rate|yuzde }}</td>
+        <td>{{ s.main_count }} / {{ s.side_count }}{% if s.main_count != 2 or s.side_count != 2 %} <span class="rozet uyari" title="Standart: 2 ana, 2 yan yemek">! standart dışı</span>{% endif %}</td>
+        <td>
+          {% if s.is_complete %}<span class="rozet iyi">✓ tam</span>{% endif %}
+          {% if s.missing_plates and s.plate_rows %}<span class="aciklama">Tepsi verisi olmayan: {{ s.missing_plates|join:", " }}</span><br>{% endif %}
+          {% if s.orphans %}<span class="aciklama">Yemekhane kaydı olmayan: {{ s.orphans|join:", " }}</span>{% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8" class="soluk">Bu dönemde veri yok.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="aciklama">Ana yemek kapsaması = analiz edilen ana yemek tabağı ÷ servis edilen ana yemek porsiyonu. %100'e yakınsa görüntü işleme o öğünün neredeyse bütün tepsilerini görmüştür; düşükse tabak oranları bir örneklemden çıkar.</p>
+</section>
+{% endblock %}
