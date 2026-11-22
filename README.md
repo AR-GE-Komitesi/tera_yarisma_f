@@ -185,9 +185,56 @@ Basit ortalama (%13,3) olmaz; kalabalık gün daha çok etkiler.
 
 ## 5. Kurulum ve ilk açılış
 
-### Kurulum (bir kez)
+### En hızlı yol: `run.py`
 
-Gereken: Windows ve Python 3.10 ya da üstü. Proje klasöründe (`yemekhane-israf`) PowerShell açıp sırayla:
+Gereken tek şey Python 3.10 ya da üstü. Proje klasöründe:
+
+```powershell
+python run.py
+```
+
+Komut sırasıyla şunları yapar:
+
+1. `.venv` sanal ortamı yoksa oluşturur, `requirements.txt`'teki kütüphaneleri indirir. Sonraki
+   çalıştırmalarda bu adım atlanır; `requirements.txt` değişirse kurulum kendiliğinden yenilenir.
+2. Veritabanını hazırlar (`migrate`). Hiç yönetici hesabı yoksa kullanıcı adı ve parola sorar.
+3. Paneli başlatır ve tarayıcıda açar. Kapatmak için pencerede `Ctrl+C`'ye basın.
+
+| Seçenek | Ne yapar |
+|---|---|
+| `--ornek-veri` | Veritabanı boşsa `ornek_veri/` klasöründeki yapay veriyi yükler |
+| `--port 8080` | Başka port kullanır (varsayılan 8000; doluysa sıradaki boş port seçilir) |
+| `--tarayici-yok` | Tarayıcıyı otomatik açmaz |
+
+Aşağıdaki elle kurulum adımları aynı işi tek tek yapar.
+
+### Docker ile
+
+Docker kuruluysa proje klasöründe:
+
+```powershell
+docker compose up --build
+```
+
+Panel <http://localhost:8000> adresinde açılır. Kapsayıcı üretim modunda çalışır (waitress, hata
+ayrıntıları gizli). Veritabanı ve arşiv `panel-veri` adlı Docker biriminde tutulur; kapsayıcı silinse de
+kaybolmaz.
+
+- **İlk yönetici hesabı:** proje klasörüne şu iki satırla bir `.env` dosyası koyun. Hesap ilk açılışta
+  oluşturulur. `.env` git'e eklenmez.
+
+  ```
+  DJANGO_SUPERUSER_USERNAME=yonetici
+  DJANGO_SUPERUSER_PASSWORD=guclu-bir-parola
+  ```
+
+  Ya da kapsayıcı çalışırken: `docker compose exec panel python manage.py createsuperuser`
+- **Örnek veri:** `.env` dosyasına `ISRAF_ORNEK_VERI=1` ekleyin; veritabanı boşsa ilk açılışta yüklenir.
+- **Başka bir alan adından açılacaksa** `DJANGO_ALLOWED_HOSTS` değişkenini `.env` dosyasına ekleyin.
+
+### Elle kurulum (bir kez)
+
+Proje klasöründe (`yemekhane-israf`) PowerShell açıp sırayla:
 
 ```powershell
 python -m venv .venv                                           # projeye özel Python ortamı
@@ -571,7 +618,8 @@ aşıldığı görünür.
 
 ## 12. Komutlar
 
-Hepsi proje klasöründe `.\.venv\Scripts\python.exe manage.py <komut>` biçiminde çalışır.
+`python run.py` kurulumu ve açılışı tek adımda yapar ([bölüm 5](#5-kurulum-ve-ilk-açılış)). Aşağıdakilerin
+hepsi proje klasöründe `.\.venv\Scripts\python.exe manage.py <komut>` biçiminde çalışır.
 
 | Komut | Ne yapar |
 |---|---|
@@ -632,6 +680,9 @@ yemekhane-israf/
 ├── docs/VERI_FORMATI.md      Format belgesi (üretilmiş)
 ├── instance/                 Veritabanı, arşiv, gizli anahtar (git dışı, yedeklenir)
 ├── ornek_veri/               Yapay örnek veri: dört CSV
+├── run.py                    Tek komutla kurulum ve açılış (sanal ortam, kütüphaneler, veritabanı, tarayıcı)
+├── Dockerfile                Üretim kapsayıcısı (waitress, DEBUG kapalı)
+├── docker-compose.yml        `docker compose up --build` ayarları ve veri birimi
 └── requirements.txt          Django 5.2, whitenoise, waitress
 ```
 

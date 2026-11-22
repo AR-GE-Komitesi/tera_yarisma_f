@@ -1,0 +1,9 @@
+.git
+.venv
+instance
+.env
+**/__pycache__
+**/*.pyc
+.playwright-mcp
+.coverage
+htmlcov

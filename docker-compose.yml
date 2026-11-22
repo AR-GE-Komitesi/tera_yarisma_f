@@ -1,0 +1,20 @@
+services:
+  panel:
+    build: .
+    image: yemekhane-israf
+    ports:
+      - "8000:8000"
+    volumes:
+      - panel-veri:/data
+    environment:
+      # Panelin açılacağı adresler (virgülle). Sunucuya kurulursa alan adını ekleyin.
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost}
+      # İlk açılışta yönetici hesabı yoksa bu bilgilerle oluşturulur (.env dosyasından ya da ortamdan).
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-}
+      # 1 ise ve veritabanı boşsa ornek_veri/ klasöründeki yapay veri yüklenir.
+      ISRAF_ORNEK_VERI: ${ISRAF_ORNEK_VERI:-0}
+    restart: unless-stopped
+
+volumes:
+  panel-veri:
