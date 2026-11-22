@@ -1,0 +1,29 @@
+yemek_kodu,yemek_adi,kategori,tur,saklanabilir
+tavuk_sote,Tavuk Sote,ana_yemek,tavuk,hayir
+firin_tavuk_but,Fırın Tavuk But,ana_yemek,tavuk,hayir
+tavuk_sinitzel,Tavuk Şinitzel,ana_yemek,tavuk,hayir
+izgara_kofte,Izgara Köfte,ana_yemek,kırmızı et,hayir
+et_sote,Et Sote,ana_yemek,kırmızı et,hayir
+etli_nohut,Etli Nohut,ana_yemek,bakliyat,hayir
+etli_kuru_fasulye,Etli Kuru Fasulye,ana_yemek,bakliyat,hayir
+etli_bezelye,Etli Bezelye,ana_yemek,sebze,hayir
+karniyarik,Karnıyarık,ana_yemek,sebze,hayir
+firin_balik,Fırın Balık,ana_yemek,balık,hayir
+patates_oturtma,Patates Oturtma,ana_yemek,sebze,hayir
+pirinc_pilavi,Pirinç Pilavı,yan_yemek,pilav,hayir
+bulgur_pilavi,Bulgur Pilavı,yan_yemek,pilav,hayir
+sehriyeli_pilav,Şehriyeli Pilav,yan_yemek,pilav,hayir
+domatesli_makarna,Domatesli Makarna,yan_yemek,makarna,hayir
+firin_makarna,Fırın Makarna,yan_yemek,makarna,hayir
+patates_puresi,Patates Püresi,yan_yemek,sebze,hayir
+zeytinyagli_fasulye,Zeytinyağlı Taze Fasulye,yan_yemek,sebze,hayir
+su_boregi,Su Böreği,yan_yemek,hamur işi,hayir
+mercimek_corbasi,Mercimek Çorbası,corba,bakliyat çorbası,hayir
+ezogelin_corbasi,Ezogelin Çorbası,corba,bakliyat çorbası,hayir
+domates_corbasi,Domates Çorbası,corba,sebze çorbası,hayir
+yayla_corbasi,Yayla Çorbası,corba,yoğurtlu çorba,hayir
+tarhana_corbasi,Tarhana Çorbası,corba,tahıl çorbası,hayir
+sebze_corbasi,Sebze Çorbası,corba,sebze çorbası,hayir
+mevsim_salata,Mevsim Salata,salata,yeşillik,hayir
+coban_salata,Çoban Salata,salata,yeşillik,hayir
+ayran,Ayran,icecek,içecek,evet

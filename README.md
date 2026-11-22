@@ -215,8 +215,9 @@ Gerçek veri gelmeden paneli görmek için:
 
 Bu komut **yapay** veri üretip yükler: 40 iş günü öğle yemeği, 28 yemek, yaklaşık 44 bin tepsi. Veri bir
 simülasyondur, gerçek ölçüm değildir. Öğrenciler servis süresine yayılarak gelir, iki seçenekten birini
-popülerliğe göre seçer, seçtiği tükenmişse diğerine geçer. Dosyalar `ornek_veri/` klasörüne de yazılır;
-format örneği olarak açıp bakılabilir.
+popülerliğe göre seçer, seçtiği tükenmişse diğerine geçer. Aynı dosyalar depoda `ornek_veri/` klasöründe
+de hazır durur; format örneği olarak açılabilir ya da **Veri yükleme** sayfasından elle yüklenebilir
+([bölüm 14](#ornek_veri-klasörü)).
 
 İlk bakılacak yerler:
 
@@ -608,8 +609,8 @@ $env:DJANGO_HTTPS = "1"     # panel HTTPS arkasındaysa
 | `DJANGO_HSTS_SECONDS` | `0` | HTTPS kalıcı olarak kurulunca HSTS süresi (saniye) |
 | `ISRAF_INSTANCE_DIR` | `instance/` | Veritabanı, arşiv ve anahtarın tutulduğu klasör |
 
-**Yedekleme:** `instance/` klasörü veritabanını, arşivlenen bütün CSV dosyalarını ve gizli anahtarı
-içerir. Yedeklenmesi gereken tek klasör budur. Git'e eklenmez.
+**Yedekleme:** yedeklenmesi gereken tek klasör `instance/`'tır; hangi dosyanın neden gerektiği
+[bölüm 14](#instance-klasörü)'te.
 
 ## 14. Proje yapısı
 
@@ -630,9 +631,43 @@ yemekhane-israf/
 ├── templates/registration/   Giriş sayfası
 ├── docs/VERI_FORMATI.md      Format belgesi (üretilmiş)
 ├── instance/                 Veritabanı, arşiv, gizli anahtar (git dışı, yedeklenir)
-├── ornek_veri/               Üretilen örnek CSV'ler (git dışı)
+├── ornek_veri/               Yapay örnek veri: dört CSV
 └── requirements.txt          Django 5.2, whitenoise, waitress
 ```
+
+### `instance/` klasörü
+
+Panelin bu bilgisayara özgü bütün verisi buradadır. **Git'e eklenmez**: gizli bilgi içerir ve her
+kurulumda yeniden oluşur. Klasör yoksa panel ilk çalıştığında kendisi açar. Yerini `ISRAF_INSTANCE_DIR`
+ortam değişkeni değiştirir.
+
+| Dosya / klasör | İçinde ne var | Ne zaman oluşur | Kaybolursa |
+|---|---|---|---|
+| `db.sqlite3` | Yemek kataloğu, yemekhane kayıtları, tabak özetleri, kullanıcılar ve parolaları, eşik profilleri, servis saatleri, yükleme geçmişi | `migrate` komutuyla | Bütün veri ve hesaplar gider. **Panelin çalışması için gereken tek dosya budur; mutlaka yedekleyin.** |
+| `secret_key.txt` | Oturumları imzalayan gizli anahtar | Panel ilk açıldığında, `DJANGO_SECRET_KEY` verilmemişse | Yenisi üretilir; herkesin oturumu kapanır, yeniden giriş yapılır. Kimseyle paylaşmayın. |
+| `aktarimlar/` | Yüklenen her CSV'nin kopyası: `aktarimlar/<tür>/<yıl>/<ay>/<zaman>-<dosya adı>.csv` | İlk yüklemede | Analiz etkilenmez; **Arşivdeki dosyayı indir** çalışmaz ve eski dosyalardan yeniden yükleme imkânı kalmaz. Yedekleyin. |
+| `static/` | Üretim modunda sunulan stil ve betik kopyaları | `collectstatic` komutuyla ([bölüm 13](#13-üretim-ortamında-çalıştırma)) | `collectstatic` ile yeniden oluşturulur; yedek gerekmez. Geliştirme sunucusu (`runserver`) bu klasörü kullanmaz. |
+| `ilk_parola.txt` | İlk yönetici hesabının parolası (yalnızca bu bilgisayardaki kurulumda, elle oluşturuldu) | Kurulumda | Panel bu dosyayı kullanmaz. Parolayı `changepassword` ile değiştirdikten sonra silin. |
+
+Özetle: **çalıştırmak için** `db.sqlite3` gerekir (yoksa `migrate` oluşturur, ardından `createsuperuser`
+ile hesap açılır). **Yedek için** `db.sqlite3` ve `aktarimlar/` alınır; `secret_key.txt` de alınırsa
+geri yüklemeden sonra oturumlar kapanmaz. Veritabanını panel kapalıyken kopyalayın.
+
+### `ornek_veri/` klasörü
+
+Gerçek veri gelmeden paneli denemek ve formatları görmek için yapay veri. **Gerçek ölçüm değildir.**
+
+| Dosya | İçerik |
+|---|---|
+| `yemekler.csv` | 28 yemeklik katalog |
+| `ogunler.csv` | Servis saati farklı olan 2 gün (sınav haftası, tatil arifesi) |
+| `uretim.csv` | 40 iş günü öğle yemeği, öğün başına 7 yemek (280 satır) |
+| `tepsiler.csv` | 44.391 tepsi, 173.230 tabak satırı (7,3 MB) |
+
+Kullanmanın iki yolu var:
+
+- `ornek_veri --yukle` komutu aynı dosyaları yeniden üretip yükler (aynı tohum hep aynı dosyayı verir).
+- **Veri yükleme** sayfasından sırayla elle yüklenir: `yemekler` → `ogunler` → `uretim` → `tepsiler`.
 
 ## 15. Tasarım kararları ve sınırlar
 
