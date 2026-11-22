@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from functools import wraps
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -300,6 +301,19 @@ def _tr_decimal(value, digits=1):
     return f"{value:.{digits}f}".replace(".", ",")
 
 
+_FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _excel_text(value):
+    """Excel'de açılacak raporda metni formül olarak çalıştırılmaktan korur (CSV injection, OWASP).
+
+    Yalnızca tek yönlü raporda kullanılır; yemekler.csv ve menü dosyası yeniden yüklenebilir
+    biçimde kalsın diye olduğu gibi yazılır.
+    """
+    text = "" if value is None else str(value)
+    return "'" + text if text.startswith(_FORMULA_START) else text
+
+
 @login_required
 def siralama_csv(request):
     flt, params, groups = _ranking(request)
@@ -314,30 +328,38 @@ def siralama_csv(request):
         "uretilen_porsiyon",
         "servis_edilen_porsiyon",
         "kazan_artigi_yuzde",
+        "tamami_yenen_tabak_yuzde",
         "bitirilmeyen_tabak_yuzde",
         "dokunulmayan_tabak_yuzde",
         "tabak_artigi_yuzde",
         "toplam_israf_yuzde",
         "israf_porsiyon",
         "analiz_edilen_tabak",
+        "tamami_yenen_tabak",
+        "yarisi_yenen_tabak",
+        "dokunulmayan_tabak",
     ]
     writer.writerow(header)
     for g in groups:
         m = g.measures
-        line = [g.label]
+        line = [_excel_text(g.label)]
         if params["grup"] == "yemek":
-            line += [g.dish.code, g.category_label, g.food_type]
+            line += [g.dish.code, g.category_label, _excel_text(g.food_type)]
         line += [
             m.appearances,
             _tr_decimal(m.produced),
             _tr_decimal(m.served),
             _tr_decimal(_pct(m.pot_rate)),
+            _tr_decimal(_pct(m.finished_rate)),
             _tr_decimal(_pct(m.unfinished_rate)),
             _tr_decimal(_pct(m.untouched_rate)),
             _tr_decimal(_pct(m.plate_waste_rate)),
             _tr_decimal(_pct(m.total_waste_rate)),
             _tr_decimal(m.total_waste),
             m.plates,
+            m.finished,
+            m.half,
+            m.untouched,
         ]
         writer.writerow(line)
     span = f"{flt.start:%Y%m%d}-{flt.end:%Y%m%d}" if flt.start else "bos"
@@ -425,7 +447,13 @@ def veri(request):
         form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
             upload = form.cleaned_data["dosya"]
-            batch = import_csv(form.cleaned_data["tur"], upload.read(), upload.name, request.user)
+            batch = import_csv(
+                form.cleaned_data["tur"],
+                upload.read(),
+                upload.name,
+                request.user,
+                replace=form.cleaned_data["yerine_gecsin"],
+            )
             if batch.status == ImportBatch.Status.OK:
                 messages.success(request, f"{batch.original_name} yüklendi. {batch.summary}")
             else:
@@ -445,6 +473,7 @@ def veri(request):
             yuklemeler=ImportBatch.objects.select_related("uploaded_by")[:30],
             yemek_sayisi=Dish.objects.count(),
             son_tarih=latest,
+            en_fazla_mb=settings.ISRAF_MAX_UPLOAD_MB,
         ),
     )
 

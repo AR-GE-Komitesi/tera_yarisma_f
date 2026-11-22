@@ -9,6 +9,7 @@ tepsilerin küçük bir kısmını kaçırır.
 Kullanım:
   python manage.py ornek_veri                  # ornek_veri/ klasörüne yazar
   python manage.py ornek_veri --yukle          # yazar ve panele yükler
+  python manage.py ornek_veri --yukle --yerine-gecsin   # aynı günler zaten yüklüyse
   python manage.py ornek_veri --gun 60 --tohum 7
 """
 import csv
@@ -84,6 +85,11 @@ class Command(BaseCommand):
         parser.add_argument("--tohum", type=int, default=42, help="Rastgelelik tohumu")
         parser.add_argument("--klasor", default=str(settings.BASE_DIR / "ornek_veri"))
         parser.add_argument("--yukle", action="store_true", help="Üretilen dosyaları panele yükle")
+        parser.add_argument(
+            "--yerine-gecsin",
+            action="store_true",
+            help="--yukle ile: aynı günlerin daha önce yüklenmiş verisinin yerine geç",
+        )
 
     def handle(self, *args, **opts):
         if opts["gun"] < 1:
@@ -136,7 +142,7 @@ class Command(BaseCommand):
         if opts["yukle"]:
             for kind, (name, _, _) in files.items():
                 path = folder / name
-                batch = import_csv(kind, path.read_bytes(), name)
+                batch = import_csv(kind, path.read_bytes(), name, replace=opts["yerine_gecsin"])
                 style = self.style.SUCCESS if batch.status == ImportBatch.Status.OK else self.style.ERROR
                 self.stdout.write(style(f"{name}: {batch.get_status_display()} — {batch.summary} "
                                         f"({batch.warning_count} uyarı)"))

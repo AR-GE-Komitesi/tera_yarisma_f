@@ -123,10 +123,10 @@ sonra gelenler diğerini almak zorunda kalır. Bu yüzden tercih tek bir sayıyl
 
 | Ölçü | Anlamı |
 |---|---|
-| **Rakibinden önce tükendi** | İki seçenekten bu önce bitti. Talep üretimi aştı demektir. |
+| **Alım payı** | Servis edilenlerin bu seçeneğe düşen payı. **Tercihin ana ölçüsü.** Tükenme sonrası mecburi geçişleri de içerir; tükenen yemeğin gerçek talebi bu yüzden alım payından yüksektir. |
+| **Üretim payı** | Yemekhanenin bu seçeneğe ayırdığı pay. Alım payıyla farkı, talebin ne kadar doğru tahmin edildiğini gösterir. |
+| **Rakibinden önce tükendi** | İki seçenekten bu önce bitti: talep, ayrılan üretimi aştı. **Tek başına tercih göstermez**, çünkü az üretilen yemek de önce tükenir. Üretim payıyla birlikte okunur. |
 | **Tükenme anı** | Servisin yüzde kaçında tükendi (%0 açılış, %100 kapanış). Küçükse erken bitti. |
-| **Üretim payı** | Yemekhanenin bu seçeneğe ayırdığı pay. |
-| **Alım payı** | Servis edilenlerin bu seçeneğe düşen payı. Tükenme sonrası mecburi geçişleri de içerir. |
 
 ### Diğer terimler
 
@@ -269,8 +269,10 @@ Personel yetkisi gerekir.
    | Tepsi analizi (görüntü işleme) | `tepsiler.csv` |
 
 3. **CSV dosyası** alanından dosyayı seçin.
-4. **Yükle ve doğrula** düğmesine basın.
-5. **Yükleme raporu** sayfası açılır:
+4. Daha önce yüklenmiş bir öğünün **düzeltilmiş** dosyasını yüklüyorsanız **Önceki verinin yerine geçsin**
+   kutusunu işaretleyin. İlk yüklemede işaretlemeyin.
+5. **Yükle ve doğrula** düğmesine basın.
+6. **Yükleme raporu** sayfası açılır:
    - **✓ Yüklendi:** Veri panele girdi. **Güncellenen öğünler** bölümündeki bağlantılar sonuca götürür.
      **Uyarılar** bölümü varsa okuyun: uyarılar yüklemeyi durdurmaz ama verideki bir tutarsızlığa işaret
      eder (ör. "tabak sayısı servis edilen porsiyonu aşıyor").
@@ -280,8 +282,14 @@ Personel yetkisi gerekir.
 
 Bilmeniz gerekenler:
 
-- Bir dosya birden çok günü içerebilir.
-- **Aynı gün ve öğünü yeniden yüklemek eskisinin yerine geçer.** Düzeltme için önce silmek gerekmez.
+- Bir dosya birden çok günü içerebilir. En fazla 20 MB olabilir (yaklaşık üç aylık tepsi verisi). Daha uzun
+  dönemleri tarih aralıklarına bölerek yükleyin.
+- **Bir öğün tek dosyada gelir.** Yemekhane kaydı ya da tepsi analizi daha önce yüklenmiş bir öğünü içeren
+  dosya reddedilir. Bu, aynı öğünün iki parçasının (ör. iki kameranın tepsileri) birbirini sessizce
+  silmesini önler. Parçaları tek dosyada birleştirip yükleyin.
+- **Düzeltilmiş bir dosya** yüklerken **Önceki verinin yerine geçsin** kutusunu işaretleyin. Dosyadaki
+  öğünlerin eski verisi silinip yenisi yazılır; önce silmek gerekmez. Yeni dosyada eski kayıttaki bir yemek
+  yoksa ya da tepsi sayısı azaldıysa rapor bunu uyarı olarak gösterir.
 - Reddedilenler dahil her yükleme, dosyasıyla birlikte arşivlenir. **Veri yükleme** sayfasındaki **Son
   yüklemeler** tablosundan rapora, raporda **Arşivdeki dosyayı indir** ile dosyanın kendisine ulaşılır.
 
@@ -323,6 +331,8 @@ Panel ve görüntü işleme aynı yemeğe aynı **kodu** vermelidir. Bunun için
    indirip ekibe gönderin.
 3. Ekipten gelen `tepsiler.csv`'yi "Tepsi analizi (görüntü işleme)" türüyle yükleyin. Menüde olmayan bir kod
    varsa dosya reddedilir ve satır numarası gösterilir; ekipten düzeltilmiş dosyayı isteyin.
+4. Bir öğünün bütün tepsileri tek dosyada gelmelidir. Tepsiler birden çok kamerada ya da partide
+   işleniyorsa ekip dosyaları birleştirip göndermelidir; aynı öğünün ikinci dosyası panelde reddedilir.
 
 **Kalite kontrolü:** **Veri durumu** sayfasındaki **Ana yemek kapsaması**, görüntü işlemenin tepsilerin ne
 kadarını gördüğünü gösterir ve %100'e yakın olmalıdır. **Belirsiz tabak** oranı yükseliyorsa ekibe
@@ -343,9 +353,10 @@ zamanlanmış bir göreve bağlanabilir.
   her seferinde aynı yazılmalıdır.
 - **Kapalı ambalajlı ürünler** (ör. kapalı ayran) için `saklanabilir` sütununa `evet` yazın; artan miktar
   israf sayılmaz.
-- **Yönetim sayfasından ekleme:** `/admin/` → **Yemek kataloğu** → Ekle da çalışır, ama orada kod kuralı
-  denetlenmez. Kuralı elle uygulayın; CSV yolu daha güvenlidir.
-- **Hatalı bir öğünü düzeltmek:** o öğünün dosyasını düzeltip yeniden yükleyin; eskisinin yerine geçer.
+- **Yönetim sayfasından ekleme:** `/admin/` → **Yemek kataloğu** → Ekle da çalışır; kod kuralı orada da
+  denetlenir.
+- **Hatalı bir öğünü düzeltmek:** o öğünün dosyasını düzeltin, **Önceki verinin yerine geçsin** kutusunu
+  işaretleyip yeniden yükleyin; eskisinin yerine geçer.
 - **Bir öğünü tamamen silmek:** `/admin/` → **Üretim kayıtları**, **Tabak özetleri** ve **Tepsi
   sayıları**'ndan o güne ait kayıtları silin.
 
@@ -401,9 +412,15 @@ zamanlanmış bir göreve bağlanabilir.
 
 **Tercih analizi**
 
-- Ana yemek ve yan yemek ayrı tablolarda. En güçlü tercih işareti **Rakibinden önce tükendi** sütunudur.
-- **Ort. üretim payı** ile **Ort. alım payı**nı karşılaştırın: alım payı üretim payına yakın ve yemek sık
-  tükeniyorsa talep, ayrılan paydan fazladır.
+- Ana yemek ve yan yemek ayrı tablolarda; tablolar **Ort. alım payı**na göre sıralıdır. Tercihin doğrudan
+  ölçüsü budur: iki seçenekten servis edilen tabakların yüzde kaçının bu yemekten alındığı.
+- **Rakibinden önce tükendi** sütunu tek başına tercih göstermez: az üretilen yemek de önce tükenir. Bu
+  sütunu **Ort. üretim payı**yla birlikte okuyun. Üretim payı rakibininkine eşit ya da yüksekken önce
+  tükenen yemek gerçekten daha çok istenmiştir. Alım payı üretim payına yakın ve yemek sık tükeniyorsa
+  talep, ayrılan paydan fazladır.
+- Örnek veriyle yapılan ölçümde yemeklerin gerçek popülerliğini alım payı iyi izledi, önce tükenme izlemedi.
+  Çünkü yemekhane az sevilen yemeği az üretiyordu ve küçük üretimdeki tahmin hatası onu daha sık
+  tükendiriyordu.
 - Alttaki **Öğün öğün eşleşmeler** her günün sonucunu tek tek gösterir.
 
 **Okuma rehberi.** Panel karar vermez; yönetim bir yemeği değerlendirirken şu tabloyu kullanabilir:
@@ -414,7 +431,8 @@ zamanlanmış bir göreve bağlanabilir.
 | Kazan artığı yüksek | Gereğinden fazla pişiriliyor. |
 | Bitirilmeyen tabak yüksek, dokunulmayan düşük | Yemek yeniyor ama porsiyon büyük. |
 | Dokunulmayan tabak yüksek | Yemek alınıyor ama istenmiyor (standart tepsiye konduğu için alınıyor olabilir). |
-| Rakibinden sık önce tükeniyor | Talep yüksek; üretimdeki payı artırılabilir. |
+| Alım payı rakiplerine karşı sürekli yüksek | Öğrenciler bu seçeneği tercih ediyor. |
+| Rakibinden sık önce tükeniyor | Talep, ayrılan üretimi aşıyor; üretimdeki payı artırılabilir. Üretim payı zaten düşükse bu bir tercih işareti değil, az üretim işaretidir. |
 
 ### 6.9 Excel'e rapor almak
 
@@ -423,9 +441,11 @@ zamanlanmış bir göreve bağlanabilir.
 2. Sağ üstteki **CSV indir** düğmesine basın.
 
 Dosya Türkçe Excel'de doğrudan sütunlara ayrılmış olarak açılır. Ekrandaki seçimlerin hepsi rapora
-uygulanır. Sütunlar: ad, çıkış sayısı, üretilen ve servis edilen porsiyon, kazan artığı, bitirilmeyen
-tabak, dokunulmayan tabak, tabak artığı ve toplam israf yüzdeleri, israf edilen porsiyon, analiz edilen
-tabak. Liste "Yemek" iken yemek kodu, kategori ve tür sütunları da eklenir.
+uygulanır. Sütunlar: ad, çıkış sayısı, üretilen ve servis edilen porsiyon; kazan artığı, tamamı yenen
+tabak, bitirilmeyen tabak, dokunulmayan tabak, tabak artığı ve toplam israf yüzdeleri; israf edilen
+porsiyon; analiz edilen tabak ve bunun tamamı yenen, yarısı yenen, dokunulmayan tabak sayıları. Liste
+"Yemek" iken yemek kodu, kategori ve tür sütunları da eklenir. `=`, `+`, `-` ya da `@` ile başlayan bir
+ad, Excel'in onu formül olarak çalıştırmaması için başına `'` eklenerek yazılır.
 
 ### 6.10 Eşikleri ve servis saatlerini değiştirmek
 
@@ -494,7 +514,7 @@ elle düzenlenmez.
 | Genel bakış | `/` | Dönemin toplam israf oranı, kazan ve tabak artığı, günlük (92 günden uzun dönemde haftalık) grafik, kategori tablosu, en çok ve en az israf edilen 5 yemek |
 | Gün detayı | `/gun/` | Bir öğünün menüsü: üretilen, artan, tükenme saati, tabak durumları; iki seçeneğin karşılaştırması; önceki/sonraki öğüne geçiş |
 | İsraf sıralaması | `/siralama/` | Dönem başından sonuna israf listesi. Yemek, tür ya da kategori bazında; istenen ölçüte göre sıralanır; Excel'e uygun CSV olarak indirilir |
-| Tercih analizi | `/tercih/` | Hangi yemek rakibinden önce tükendi; ortalama üretim payı, alım payı ve tükenme anı; öğün öğün eşleşmeler |
+| Tercih analizi | `/tercih/` | Yemeklerin ortalama alım payı (tercih) ve üretim payı, rakibinden önce tükenme ve tükenme anı; öğün öğün eşleşmeler |
 | Yemek sayfası | `/yemek/<kod>/` | Bir yemeğin bütün geçmişi, grafiği ve rakipleriyle eşleşmeleri |
 | Veri yükleme | `/veri/` | CSV yükleme, şablonlar, görüntü ekibi için menü ve katalog, son yüklemeler |
 | Veri durumu | `/veri/durum/` | Her öğün için hangi verinin geldiği, görüntü işlemenin tepsilerin ne kadarını gördüğü, eksik ya da tutarsız kayıtlar |
@@ -538,6 +558,9 @@ aşıldığı görünür.
 | "… yemekhane kaydında yok" | Görüntü ekibi o öğünün menüsünde olmayan bir kod yazmış ya da `uretim.csv`'de o yemek eksik. | Etiketi ya da yemekhane kaydını düzeltip yeniden yükleyin. |
 | "Satırda başlıktan fazla değer var" | Virgül ayraçlı dosyada `12,5` gibi tırnaksız ondalık virgül kullanılmış. | `12.5` yazın ya da dosyayı Excel (TR) şablonuyla hazırlayın. |
 | "Eksik sütun … Bu dosya «…» formatına uyuyor" | Yüklerken yanlış dosya türü seçilmiş. | Doğru türü seçip tekrar yükleyin. |
+| "… daha önce yüklenmiş … tepsi var" ya da "… yemek kaydı var" | Dosyadaki öğün zaten yüklü. | Dosya aynı öğünün bir parçasıysa parçaları tek dosyada birleştirip yükleyin. Düzeltilmiş dosyaysa **Önceki verinin yerine geçsin** kutusunu işaretleyip yeniden yükleyin. |
+| "önceki … tepsinin yerine bu dosyadaki … tepsi geçti" (uyarı) | Onaylı düzeltme dosyasında öncekinden az tepsi var. | Beklenen bir düzeltmeyse sorun yok. Değilse eksik parçayı birleştirip yeniden yükleyin; eski dosya arşivdedir. |
+| "Dosya 20 MB sınırını aşıyor" | Dosya çok uzun bir dönemi içeriyor. | Tarih aralıklarına bölün (ör. ay ay). Bir öğünü iki dosyaya bölmeyin. |
 | "Dosya Windows-1254 kodlamasıyla okundu" (uyarı) | Excel'de düz CSV seçilerek kaydedilmiş. | Sorun değil. Mümkünse **CSV UTF-8** ile kaydedin. |
 | "… için yemekhane kaydı henüz yüklenmemiş" (uyarı) | Tepsi dosyası, yemekhane kaydından önce geldi. | Sorun değil. `uretim.csv` yüklenince analiz tamamlanır. |
 | "… Bu öğün tercih analizine katılmaz" (uyarı) | O öğünde 2'den farklı sayıda ana ya da yan yemek var. | Bilgi amaçlıdır; israf hesapları etkilenmez. |
@@ -552,14 +575,15 @@ Hepsi proje klasöründe `.\.venv\Scripts\python.exe manage.py <komut>` biçimin
 | Komut | Ne yapar |
 |---|---|
 | `runserver` | Paneli <http://127.0.0.1:8000> adresinde açar (deneme ve yerel kullanım). |
-| `csv_yukle <tür> <dosya>...` | CSV yükler. Tür: `yemekler`, `ogunler`, `uretim`, `tepsiler`. Dosya reddedilirse çıkış kodu 1 olur; otomasyon için uygundur. |
-| `ornek_veri [--yukle] [--gun 40] [--bitis 2026-11-20] [--tohum 42]` | Yapay örnek veri üretir. Aynı tohum her zaman aynı veriyi verir. |
+| `csv_yukle <tür> <dosya>... [--yerine-gecsin]` | CSV yükler. Tür: `yemekler`, `ogunler`, `uretim`, `tepsiler`. Dosya reddedilirse çıkış kodu 1 olur; otomasyon için uygundur. Verisi zaten yüklü bir öğünü içeren dosya `--yerine-gecsin` verilmedikçe reddedilir. 20 MB sınırı yalnızca paneldeki yüklemeye uygulanır. |
+| `ornek_veri [--yukle] [--yerine-gecsin] [--gun 40] [--bitis 2026-11-20] [--tohum 42]` | Yapay örnek veri üretir. Aynı tohum her zaman aynı veriyi verir. Aynı günler zaten yüklüyse `--yukle` ile birlikte `--yerine-gecsin` gerekir. |
 | `format_belgesi` | `docs/VERI_FORMATI.md` belgesini yeniden üretir. Format değişince çalıştırılır. |
 | `test israf` | Testleri çalıştırır. |
 | `createsuperuser` / `changepassword` | Yönetici oluşturur / parola değiştirir (Django'nun kendi komutları). |
 
 Testler şunları kapsar: Türkçe Excel dosyalarının okunması, bütün doğrulama kuralları, ya-hep-ya-hiç
-yükleme, yeniden yükleme, tepsi özetleme, elle hesaplanmış örneklerle bütün formüller, tercih kuralları,
+yükleme, onaylı yeniden yükleme ve bölünmüş dosyanın reddi, tepsi özetleme, elle hesaplanmış örneklerle
+bütün formüller, tercih kuralları ve sıralaması, yönetim sayfasında kod kuralı, Excel raporunun formül koruması,
 sayfalar, yetkiler ve format belgesinin koddan sapmaması.
 
 ## 13. Üretim ortamında çalıştırma
@@ -624,6 +648,11 @@ yemekhane-israf/
   israf yalnızca tabakta kalandır. Varsayılan "hayır"dır; yemekhane işaretlemedikçe hesap değişmez.
 - **Format tek yerde tanımlıdır.** Doğrulama, şablonlar, Tanımlar sayfası ve format belgesi aynı tanımdan
   beslenir; biri değişip diğeri eski kalamaz.
+- **Bir öğünün üzerine yazmak açık onay ister.** Öğün daha önce yüklendiyse yeni dosya reddedilir;
+  düzeltme **Önceki verinin yerine geçsin** ile yüklenir. Onay olmasaydı aynı öğünün ikinci parçası
+  birinciyi uyarısız silerdi (örnek veride 1.008 tepsilik öğün 504'e iniyordu).
+- **Yükleme sınırı 20 MB'dir.** İçe aktarma dosya boyutunun yaklaşık 25 katı bellek kullanır (7,7 MB'lık
+  dosya 195 MB). 20 MB yaklaşık 500 MB belleğe karşılık gelir.
 
 **Bilinen sınırlar**
 
@@ -636,6 +665,5 @@ yemekhane-israf/
   sayfasında "ana yemek kapsaması" olarak izlenir.
 - **Alım payı gerçek talebi tam göstermez.** Tükenme sonrası mecburi geçişleri içerir; bu yüzden tükenme
   bilgisiyle birlikte okunmalıdır.
-- **Yönetim sayfasında kod kuralı denetlenmez.** Yemek eklerken CSV yolu tercih edilmelidir ([6.6](#66-katalog-düzeltme-ve-silme)).
 - **Veri yalnızca CSV ile gelir** ve panel şimdilik yerel çalışır. İleride görüntü işleme doğrudan bağlanmak
   isterse `aktarim.py` içindeki doğrulama aynen kullanılabilir.

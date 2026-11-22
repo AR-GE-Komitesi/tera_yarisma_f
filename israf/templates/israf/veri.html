@@ -15,10 +15,12 @@
     {% csrf_token %}
     <label>{{ form.tur.label }}{{ form.tur }}</label>
     <label>{{ form.dosya.label }}{{ form.dosya }}</label>
+    <label class="kutu">{{ form.yerine_gecsin }}{{ form.yerine_gecsin.label }}</label>
     <button class="dugme" type="submit">Yükle ve doğrula</button>
   </form>
   {{ form.non_field_errors }}{{ form.tur.errors }}{{ form.dosya.errors }}
-  <p class="aciklama" style="margin-top: 10px">Dosya önce bütünüyle doğrulanır. Tek bir hatalı satır varsa hiçbir şey yazılmaz ve hatalar satır numarasıyla listelenir. Aynı öğünü yeniden yüklemek öncekinin yerine geçer.</p>
+  <p class="aciklama" style="margin-top: 10px">Dosya önce bütünüyle doğrulanır. Tek bir hatalı satır varsa hiçbir şey yazılmaz ve hatalar satır numarasıyla listelenir. Bir dosya en fazla {{ en_fazla_mb }} MB olabilir.</p>
+  <p class="aciklama"><strong>Yeniden yükleme:</strong> yemekhane kaydı ya da tepsi analizi daha önce yüklenmiş bir öğünü içeriyorsa dosya reddedilir; böylece aynı öğünün iki parçası birbirini silmez. Düzeltilmiş bir dosya yüklüyorsanız <strong>Önceki verinin yerine geçsin</strong> kutusunu işaretleyin.</p>
 </section>
 {% else %}
 <div class="kart"><p class="soluk">Veri yüklemek için yönetici yetkisi gerekir.</p></div>

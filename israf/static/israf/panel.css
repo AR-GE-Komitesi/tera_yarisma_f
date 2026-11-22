@@ -304,6 +304,8 @@ details.tablo-gorunumu summary { cursor: pointer; color: var(--link); font-size:
 
 .form-satiri { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .form-satiri label { display: grid; gap: 4px; font-size: 0.85rem; color: var(--ink-2); }
+.form-satiri label.kutu { display: flex; align-items: center; gap: 8px; min-height: 36px; color: var(--ink); cursor: pointer; }
+.form-satiri label.kutu input { min-height: 0; width: 16px; height: 16px; margin: 0; padding: 0; accent-color: var(--ink); }
 .errorlist { color: var(--critical); list-style: none; padding: 0; margin: 4px 0; font-size: 0.85rem; }
 
 .profiller { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }

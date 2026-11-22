@@ -492,9 +492,10 @@ def preference_summary(pairs: list[Pair]) -> list[DishPreference]:
             elif winner is pair.rival(side):
                 item.rival_first += 1
     result = list(stats.values())
-    result.sort(
-        key=lambda p: (CATEGORY_ORDER[p.dish.category], -(p.first_out_rate or 0), -(p.avg_share or 0), p.dish.name)
-    )
+    # Tercihin doğrudan ölçüsü alım payıdır. "Rakibinden önce tükendi" üretim miktarına bağlıdır
+    # (az üretilen yemek de önce tükenir); örnek veride yemeklerin popülerliğiyle uyumu alım payında
+    # yüksek (Spearman 0,95 / 0,83), önce tükenmede düşük (-0,43 / 0,18) çıktı. Sıralama bu yüzden alım payına göre.
+    result.sort(key=lambda p: (CATEGORY_ORDER[p.dish.category], -(p.avg_share or 0), p.dish.name))
     return result
 
 

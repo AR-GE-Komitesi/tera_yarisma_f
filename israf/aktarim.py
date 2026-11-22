@@ -3,6 +3,11 @@
 Kural: Dosyada tek bir hata varsa hiçbir şey yazılmaz (ya hep ya hiç).
 Uyarılar yüklemeyi durdurmaz. Her yükleme, reddedilse bile, dosyasıyla
 birlikte ImportBatch olarak kaydedilir.
+
+Yemekhane kaydı ve tepsi analizi öğün öğün yazılır: dosyadaki bir öğün
+öncekinin yerine geçer. Verisi zaten yüklü bir öğünü içeren dosya, açık onay
+(`replace=True`) verilmedikçe reddedilir; böylece aynı öğünün iki parçası
+birbirini sessizce silmez.
 """
 import csv
 import io
@@ -20,6 +25,7 @@ from django.utils.text import get_valid_filename
 
 from .formatlar import FORMATS, CsvFormat
 from .models import (
+    DISH_CODE_PATTERN,
     PAIRED_CATEGORIES,
     Category,
     Dish,
@@ -34,7 +40,13 @@ from .models import (
 )
 
 MAX_STORED_MESSAGES = 300
-CODE_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
+CODE_RE = re.compile(DISH_CODE_PATTERN)
+REPLACE_HINT = (
+    "Bu dosyadaki öğünlerin verisi daha önce yüklenmiş; kabul edilirse öncekinin yerine geçer. "
+    "Dosya aynı öğünün bir parçasıysa (ör. ikinci kameranın tepsileri) parçaları tek dosyada birleştirip "
+    "yükleyin, yoksa ikinci parça birinciyi siler. Düzeltilmiş bir dosyaysa yerine geçme onayıyla yeniden "
+    "yükleyin: panelde «Önceki verinin yerine geçsin» kutusu, komut satırında --yerine-gecsin."
+)
 _TR_FOLD = str.maketrans("çğıöşüÇĞİÖŞÜâîûÂÎÛ", "cgiosuCGIOSUaiuAIU")
 TWO_PLACES = Decimal("0.01")
 
@@ -310,6 +322,21 @@ def _key_id(day, meal):
     return f"{day.isoformat()}/{meal}"
 
 
+def _check_existing(existing: dict, incoming: dict, unit: str, replace: bool, report: Report):
+    """Verisi zaten yüklü öğünlerin üzerine yazmayı açık onaya bağlar.
+
+    `existing` ve `incoming`: (tarih, öğün) → adet (yemek ya da tepsi).
+    """
+    clashes = sorted(key for key in incoming if existing.get(key))
+    if replace or not clashes:
+        return
+    for key in clashes:
+        report.error(
+            f"{_key_label(*key)}: daha önce yüklenmiş {existing[key]} {unit} var; bu dosyada {incoming[key]} {unit}."
+        )
+    report.error(REPLACE_HINT)
+
+
 # ------------------------------------------------------------ türe özel işlemler
 
 
@@ -364,9 +391,16 @@ def write_sessions(records, report: Report):
     return sorted(set(affected)), f"{len(records)} öğün bilgisi yazıldı."
 
 
-def validate_production(records, report: Report):
+def validate_production(records, report: Report, replace: bool = False):
     dishes = _dish_lookup(records, report)
     dates = {r["tarih"] for _, r in records}
+    _check_existing(
+        Counter(Production.objects.filter(date__in=dates).values_list("date", "meal")),
+        Counter((r["tarih"], r["ogun"]) for _, r in records),
+        "yemek kaydı",
+        replace,
+        report,
+    )
     window = _window_lookup(dates)
     per_key = defaultdict(list)
     for line, record in records:
@@ -421,8 +455,18 @@ def write_production(records, report: Report, dishes):
     by_key = defaultdict(list)
     for _, record in records:
         by_key[(record["tarih"], record["ogun"])].append(record)
-    for (day, meal), items in by_key.items():
-        Production.objects.filter(date=day, meal=meal).delete()
+    replaced = 0
+    for (day, meal), items in sorted(by_key.items()):
+        previous = Production.objects.filter(date=day, meal=meal)
+        before = set(previous.values_list("dish__code", flat=True))
+        removed = before - {r["yemek_kodu"] for r in items}
+        if removed:
+            report.warn(
+                f"{_key_label(day, meal)}: önceki kayıttaki {', '.join(sorted(removed))} bu dosyada yoktu; "
+                "kayıtları silindi."
+            )
+        replaced += bool(before)
+        previous.delete()
         Production.objects.bulk_create(
             Production(
                 date=day,
@@ -435,12 +479,23 @@ def write_production(records, report: Report, dishes):
             for r in items
         )
     affected = sorted(_key_id(day, meal) for day, meal in by_key)
-    return affected, f"{len(by_key)} öğün için {len(records)} yemek kaydı yazıldı."
+    note = f"; {replaced} öğünün önceki kaydının yerine geçti" if replaced else ""
+    return affected, f"{len(by_key)} öğün için {len(records)} yemek kaydı yazıldı{note}."
 
 
-def validate_trays(records, report: Report):
+def validate_trays(records, report: Report, replace: bool = False):
     dishes = _dish_lookup(records, report)
     dates = {r["tarih"] for _, r in records}
+    trays = defaultdict(set)
+    for _, record in records:
+        trays[(record["tarih"], record["ogun"])].add(record["tepsi_id"])
+    _check_existing(
+        {(d, m): n for d, m, n in TrayCount.objects.filter(date__in=dates).values_list("date", "meal", "trays")},
+        {key: len(ids) for key, ids in trays.items()},
+        "tepsi",
+        replace,
+        report,
+    )
     menus = defaultdict(dict)
     for prod in Production.objects.filter(date__in=dates).select_related("dish"):
         menus[(prod.date, prod.meal)][prod.dish.code] = prod
@@ -470,13 +525,11 @@ def validate_trays(records, report: Report):
         return dishes, None
 
     plates = defaultdict(Counter)
-    trays = defaultdict(set)
     tray_categories = defaultdict(Counter)
     for _, record in records:
         key = (record["tarih"], record["ogun"])
         dish = dishes[record["yemek_kodu"]]
         plates[(*key, dish.code)][record["durum"]] += 1
-        trays[key].add(record["tepsi_id"])
         tray_categories[(*key, record["tepsi_id"])][dish.category] += 1
 
     for (day, meal, code), counter in sorted(plates.items()):
@@ -504,7 +557,21 @@ def validate_trays(records, report: Report):
 
 def write_trays(records, report: Report, dishes, aggregates):
     plates, trays = aggregates
-    for day, meal in trays:
+    previous = {
+        (d, m): n
+        for d, m, n in TrayCount.objects.filter(date__in={day for day, _ in trays}).values_list("date", "meal", "trays")
+    }
+    replaced = 0
+    for day, meal in sorted(trays):
+        before = previous.get((day, meal))
+        if before:
+            replaced += 1
+            now = len(trays[(day, meal)])
+            if now < before:
+                report.warn(
+                    f"{_key_label(day, meal)}: önceki {before} tepsinin yerine bu dosyadaki {now} tepsi geçti "
+                    f"({before - now} tepsi eksildi)."
+                )
         PlateSummary.objects.filter(date=day, meal=meal).delete()
         TrayCount.objects.filter(date=day, meal=meal).delete()
     PlateSummary.objects.bulk_create(
@@ -524,13 +591,15 @@ def write_trays(records, report: Report, dishes, aggregates):
     )
     affected = sorted(_key_id(day, meal) for day, meal in trays)
     tray_total = sum(len(ids) for ids in trays.values())
-    return affected, f"{len(trays)} öğün, {tray_total} tepsi, {len(records)} tabak işlendi."
+    note = f"; {replaced} öğünün önceki verisinin yerine geçti" if replaced else ""
+    return affected, f"{len(trays)} öğün, {tray_total} tepsi, {len(records)} tabak işlendi{note}."
 
 
 # ----------------------------------------------------------------- ana giriş noktası
 
 
-def import_csv(kind: str, raw: bytes, filename: str, user=None) -> ImportBatch:
+def import_csv(kind: str, raw: bytes, filename: str, user=None, replace: bool = False) -> ImportBatch:
+    """`replace`: verisi zaten yüklü öğünlerin yerine geçmeye onay (düzeltilmiş dosya)."""
     fmt = FORMATS[kind]
     report = Report()
     parsed = None
@@ -557,9 +626,9 @@ def import_csv(kind: str, raw: bytes, filename: str, user=None) -> ImportBatch:
         elif kind == ImportBatch.Kind.SESSIONS:
             validate_sessions(records, report)
         elif kind == ImportBatch.Kind.PRODUCTION:
-            context = validate_production(records, report)
+            context = validate_production(records, report, replace)
         elif kind == ImportBatch.Kind.TRAYS:
-            context = validate_trays(records, report)
+            context = validate_trays(records, report, replace)
 
     batch = ImportBatch(
         kind=kind,

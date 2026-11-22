@@ -116,7 +116,9 @@ LOGIN_REDIRECT_URL = "israf:genel"
 LOGOUT_REDIRECT_URL = "login"
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
-ISRAF_MAX_UPLOAD_MB = 100
+# İçe aktarma, dosya boyutunun yaklaşık 25 katı bellek kullanır (ölçüm: 7,7 MB → 195 MB).
+# 20 MB ≈ 500 MB bellek ≈ üç aylık tepsi verisi. Komut satırı (csv_yukle) bu sınıra bağlı değildir.
+ISRAF_MAX_UPLOAD_MB = 20
 
 _HTTPS = os.environ.get("DJANGO_HTTPS", "0") == "1"
 SESSION_COOKIE_SECURE = _HTTPS

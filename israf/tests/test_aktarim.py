@@ -1,6 +1,10 @@
+import io
+import tempfile
 from datetime import time
 from decimal import Decimal
+from pathlib import Path
 
+from django.core.management import CommandError, call_command
 from django.test import TestCase
 
 from israf.models import Dish, ImportBatch, PlateSummary, Production, TrayCount
@@ -103,15 +107,31 @@ class ProductionTests(TestCase):
         self.assertIn("1 adet ana yemek", warnings)
         self.assertIn("0 adet yan yemek", warnings)
 
-    def test_reupload_replaces_meal(self):
+    def test_reupload_without_consent_is_rejected(self):
+        # Ölçülen kusur: tek satırlık ikinci dosya 5 yemeklik öğünü sessizce 1 yemeğe indiriyordu.
         load(K.PRODUCTION, PRODUCTION_CSV)
+        only_soup = "\n".join(PRODUCTION_CSV.strip().splitlines()[:2]) + "\n"
+        batch = load(K.PRODUCTION, only_soup)
+        self.assertEqual(batch.status, ImportBatch.Status.REJECTED)
         self.assertEqual(Production.objects.count(), 5)
+        self.assertIn("daha önce yüklenmiş 5 yemek kaydı var; bu dosyada 1 yemek kaydı", texts(batch, "hata"))
+
+    def test_reupload_with_consent_replaces_meal_and_names_removed_dishes(self):
+        load(K.PRODUCTION, PRODUCTION_CSV)
         smaller = "\n".join(PRODUCTION_CSV.strip().splitlines()[:3]) + "\n"
-        batch = load(K.PRODUCTION, smaller)
+        batch = load(K.PRODUCTION, smaller, replace=True)
         self.assertEqual(batch.status, ImportBatch.Status.OK)
         self.assertEqual(Production.objects.count(), 2)
         self.assertEqual(Production.objects.get(dish__code="tavuk").ran_out_at, time(12, 30))
         self.assertEqual(batch.affected, ["2026-11-20/ogle"])
+        self.assertIn("kofte, makarna, pilav bu dosyada yoktu", texts(batch, "uyari"))
+        self.assertIn("1 öğünün önceki kaydının yerine geçti", batch.summary)
+
+    def test_other_meal_of_same_day_needs_no_consent(self):
+        load(K.PRODUCTION, PRODUCTION_CSV)
+        batch = load(K.PRODUCTION, PRODUCTION_CSV.replace(",ogle,", ",aksam,"))
+        self.assertEqual(batch.status, ImportBatch.Status.OK, texts(batch))
+        self.assertEqual(Production.objects.count(), 10)
 
 
 class TrayTests(TestCase):
@@ -158,3 +178,40 @@ class TrayTests(TestCase):
         batch = load(K.TRAYS, TRAYS_CSV + extra)
         self.assertEqual(batch.status, ImportBatch.Status.OK)
         self.assertIn("servis edilen porsiyonu", texts(batch, "uyari"))
+
+    def test_second_part_of_split_tray_file_is_rejected(self):
+        # Ölçülen kusur: iki parçaya bölünen öğünde ikinci parça birinciyi uyarısız siliyordu (1008 → 504 tepsi).
+        header, *rows = TRAYS_CSV.strip().splitlines()
+        first = [r for r in rows if r.split(",")[2] in {"T1", "T2", "T3", "T4"}]
+        second = [r for r in rows if r not in first]
+        self.assertEqual(load(K.TRAYS, "\n".join([header, *first]) + "\n").status, ImportBatch.Status.OK)
+        batch = load(K.TRAYS, "\n".join([header, *second]) + "\n")
+        self.assertEqual(batch.status, ImportBatch.Status.REJECTED)
+        self.assertEqual(TrayCount.objects.get().trays, 4)
+        errors = texts(batch, "hata")
+        self.assertIn("daha önce yüklenmiş 4 tepsi var; bu dosyada 5 tepsi", errors)
+        self.assertIn("parçaları tek dosyada birleştirip", errors)
+
+    def test_corrected_tray_file_replaces_with_consent_and_reports_fewer_trays(self):
+        load(K.TRAYS, TRAYS_CSV)
+        first_four = "\n".join(TRAYS_CSV.strip().splitlines()[:13]) + "\n"  # başlık + T1–T4
+        batch = load(K.TRAYS, first_four, replace=True)
+        self.assertEqual(batch.status, ImportBatch.Status.OK, texts(batch))
+        self.assertEqual(TrayCount.objects.get().trays, 4)
+        self.assertIn("önceki 9 tepsinin yerine bu dosyadaki 4 tepsi geçti", texts(batch, "uyari"))
+        self.assertIn("1 öğünün önceki verisinin yerine geçti", batch.summary)
+
+
+class CommandTests(TestCase):
+    def test_csv_yukle_replaces_only_with_flag(self):
+        load(K.DISHES, DISHES_CSV)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "uretim.csv"
+            path.write_text(PRODUCTION_CSV, encoding="utf-8")
+            call_command("csv_yukle", "uretim", str(path), stdout=io.StringIO())
+            with self.assertRaises(CommandError):
+                call_command("csv_yukle", "uretim", str(path), stdout=io.StringIO())
+            call_command("csv_yukle", "uretim", str(path), "--yerine-gecsin", stdout=io.StringIO())
+        statuses = list(ImportBatch.objects.order_by("pk").values_list("status", flat=True))
+        self.assertEqual(statuses[-3:], [ImportBatch.Status.OK, ImportBatch.Status.REJECTED, ImportBatch.Status.OK])
+        self.assertEqual(Production.objects.count(), 5)

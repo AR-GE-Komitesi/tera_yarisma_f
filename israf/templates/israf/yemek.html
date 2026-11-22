@@ -16,7 +16,7 @@
   <div><div class="ad">Bitirilmeyen tabak</div><div class="deger">{{ toplam.unfinished_rate|yuzde }}{% esik toplam.unfinished_rate "bitirilmeyen" %}</div></div>
   <div><div class="ad">Dokunulmayan tabak</div><div class="deger">{{ toplam.untouched_rate|yuzde }}</div></div>
   <div><div class="ad">İsraf edilen porsiyon</div><div class="deger">{{ toplam.total_waste|porsiyon }}</div><div class="not">{{ toplam.complete_produced|porsiyon }} porsiyon üretimden</div></div>
-  {% if tercih %}<div><div class="ad">Rakibinden önce tükendi</div><div class="deger">{{ tercih.first_out }}/{{ tercih.pairs }}</div><div class="not">ort. alım payı {{ tercih.avg_share|yuzde }}</div></div>{% endif %}
+  {% if tercih %}<div><div class="ad">Ort. alım payı</div><div class="deger">{{ tercih.avg_share|yuzde }}</div><div class="not">üretim payı {{ tercih.avg_production_share|yuzde }} · rakibinden önce tükendi: {{ tercih.first_out }}/{{ tercih.pairs }}</div></div>{% endif %}
 </section>
 {% include "israf/_esik_aciklama.html" %}
 

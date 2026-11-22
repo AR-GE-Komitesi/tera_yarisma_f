@@ -5,9 +5,17 @@ durum sayıları özetlenir ve yüklenen CSV dosyası olduğu gibi arşivlenir.
 Böylece veritabanı küçük kalır, gerekirse arşivden yeniden yüklenebilir.
 """
 from django.conf import settings
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models import F, Q
+
+# Yemek kodu kuralı: CSV yüklemesi (aktarim.py) ve yönetim sayfası aynı kuralı kullanır.
+DISH_CODE_PATTERN = r"^[a-z0-9][a-z0-9_-]{0,39}$"
+dish_code_validator = RegexValidator(
+    DISH_CODE_PATTERN,
+    "Yalnızca küçük harf, rakam, '_' ve '-' kullanın; ilk karakter harf ya da rakam olmalı. "
+    "Türkçe karakter ve boşluk kullanılmaz (ör. tavuk_sis).",
+)
 
 
 class Category(models.TextChoices):
@@ -38,7 +46,7 @@ class PlateState(models.TextChoices):
 
 
 class Dish(models.Model):
-    code = models.CharField("yemek kodu", max_length=40, unique=True)
+    code = models.CharField("yemek kodu", max_length=40, unique=True, validators=[dish_code_validator])
     name = models.CharField("yemek adı", max_length=120)
     category = models.CharField("kategori", max_length=20, choices=Category.choices)
     food_type = models.CharField("tür", max_length=60, blank=True)

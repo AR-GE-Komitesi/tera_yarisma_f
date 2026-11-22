@@ -1,10 +1,10 @@
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from israf.formatlar import FORMATS
-from israf.models import ImportBatch, Production, ThresholdProfile
+from israf.models import Dish, ImportBatch, Production, ThresholdProfile
 
 from .yardimci import PRODUCTION_CSV, load_fixture
 
@@ -44,6 +44,21 @@ class AccessTests(TestCase):
         self.client.force_login(User.objects.create_user("bos", password="x-Parola-123", is_staff=True))
         response = self.client.get(reverse("israf:genel"))
         self.assertContains(response, "Henüz analiz edilecek veri yok")
+
+
+class AdminTests(TestCase):
+    def test_admin_enforces_dish_code_rule(self):
+        # Önceden yönetim sayfası CSV'nin reddettiği kodları kabul ediyordu; böyle bir yemek
+        # CSV'lerde hiç kullanılamaz, '/' içeren kod ise bağlantı üretirken sayfaları çökertir.
+        self.client.force_login(User.objects.create_superuser("kok", password="x-Parola-123"))
+        url = reverse("admin:israf_dish_add")
+        data = {"name": "Tavuk Şiş", "category": "ana_yemek", "food_type": "tavuk"}
+        for bad in ("Tavuk Şiş", "tavuk/sis", "_tavuk"):
+            response = self.client.post(url, {**data, "code": bad})
+            self.assertContains(response, "Yalnızca küçük harf", msg_prefix=bad)
+        self.assertFalse(Dish.objects.exists())
+        self.assertEqual(self.client.post(url, {**data, "code": "tavuk_sis"}).status_code, 302)
+        self.assertTrue(Dish.objects.filter(code="tavuk_sis").exists())
 
 
 class PageTests(TestCase):
@@ -87,8 +102,22 @@ class PageTests(TestCase):
         response = self.client.get(reverse("israf:siralama_csv"), {"grup": "yemek"})
         body = response.content.decode("utf-8")
         self.assertTrue(body.startswith("﻿yemek;yemek_kodu;"))
+        header = body.splitlines()[0].lstrip("﻿").split(";")
         kofte = next(line for line in body.splitlines() if line.startswith("Izgara Köfte"))
-        self.assertIn(";66,7;", kofte)
+        values = dict(zip(header, kofte.split(";")))
+        self.assertEqual(values["toplam_israf_yuzde"], "66,7")
+        # Köfte tabakları: 1 tamamı, 1 yarısı, 1 dokunulmadı
+        self.assertEqual(values["tamami_yenen_tabak_yuzde"], "33,3")
+        self.assertEqual(
+            [values[k] for k in ("tamami_yenen_tabak", "yarisi_yenen_tabak", "dokunulmayan_tabak")], ["1", "1", "1"]
+        )
+
+    def test_ranking_csv_neutralises_spreadsheet_formulas(self):
+        Dish.objects.filter(code="kofte").update(name="=HYPERLINK(\"x\")", food_type="+et")
+        body = self.client.get(reverse("israf:siralama_csv"), {"grup": "yemek"}).content.decode("utf-8")
+        line = next(line for line in body.splitlines() if ";kofte;" in line)
+        self.assertTrue(line.startswith("\"'=HYPERLINK(\"\"x\"\")\";kofte;"), line)
+        self.assertIn(";'+et;", line)
 
     def test_templates_and_menu_downloads(self):
         for kind, fmt in FORMATS.items():
@@ -109,6 +138,21 @@ class PageTests(TestCase):
         self.assertEqual(Production.objects.filter(date="2026-11-21").count(), 5)
         archive = self.client.get(reverse("israf:aktarim_dosya", args=[batch.pk]))
         self.assertEqual(b"".join(archive.streaming_content).decode(), PRODUCTION_CSV.replace("2026-11-20", "2026-11-21"))
+
+    def test_reupload_through_view_needs_the_checkbox(self):
+        self.assertContains(self.client.get(reverse("israf:veri")), 'name="yerine_gecsin"')
+        for extra, expected in (({}, ImportBatch.Status.REJECTED), ({"yerine_gecsin": "on"}, ImportBatch.Status.OK)):
+            upload = SimpleUploadedFile("uretim.csv", PRODUCTION_CSV.encode())  # 20.11 öğle zaten yüklü
+            self.client.post(reverse("israf:veri"), {"tur": "uretim", "dosya": upload, **extra})
+            self.assertEqual(ImportBatch.objects.order_by("-pk").first().status, expected)
+        self.assertEqual(Production.objects.count(), 5)
+
+    @override_settings(ISRAF_MAX_UPLOAD_MB=0.0001)  # ~100 bayt
+    def test_upload_size_limit(self):
+        upload = SimpleUploadedFile("uretim.csv", PRODUCTION_CSV.encode())
+        response = self.client.post(reverse("israf:veri"), {"tur": "uretim", "dosya": upload})
+        self.assertContains(response, "MB sınırını aşıyor")
+        self.assertEqual(ImportBatch.objects.filter(original_name="uretim.csv").count(), 0)
 
     def test_settings_switch_profile_and_edit_values(self):
         data = {"etkin_profil": "siki"}

@@ -18,28 +18,30 @@
   </div>
 </div>
 
-<p class="aciklama">Her öğünde ana yemek ve yan yemekten ikişer seçenek çıkar; öğrenci birini alır. Bir seçenek tükenince sonra gelenler diğerini almak zorunda kalır.
-  Bu yüzden iki ölçü birlikte okunmalı: <strong>rakibinden önce tükenme</strong> talebin üretimi aştığını, <strong>üretim payı ile alım payı</strong> arasındaki fark yemekhanenin talebi ne kadar doğru tahmin ettiğini gösterir.</p>
+<p class="aciklama">Her öğünde ana yemek ve yan yemekten ikişer seçenek çıkar; öğrenci birini alır. Tablolar <strong>ortalama alım payına</strong> göre sıralıdır: iki seçenekten servis edilen tabakların yüzde kaçının bu yemekten alındığı. Tercihin doğrudan ölçüsü budur.
+  Bir seçenek tükenince sonra gelenler diğerini almak zorunda kalır; tükenen yemeğin gerçek talebi bu yüzden alım payından yüksektir.
+  <strong>Rakibinden önce tükenme</strong> tek başına tercih göstermez, çünkü az üretilen yemek de önce tükenir: talebin ayrılan üretimi aştığını gösterir ve üretim payıyla birlikte okunur. Üretim payı ile alım payı arasındaki fark, yemekhanenin talebi ne kadar doğru tahmin ettiğini gösterir.</p>
 
 {% for kategori_adi, satirlar in bolumler %}
 <section class="kart">
   <div class="kart-basi"><h2>{{ kategori_adi }}</h2></div>
   <div class="tablo-kap"><table class="tablo">
     <thead><tr>
-      <th>Yemek</th><th class="sayi">Eşleşme</th><th class="sayi">Tükendi</th>
-      <th class="sayi">Rakibinden önce tükendi</th><th class="sayi">Rakibi önce tükendi</th>
-      <th class="sayi">Ort. üretim payı</th><th class="sayi">Ort. alım payı</th><th class="sayi">Ort. tükenme anı</th>
+      <th>Yemek</th><th class="sayi">Eşleşme</th>
+      <th class="sayi" aria-sort="descending">Ort. alım payı</th><th class="sayi">Ort. üretim payı</th>
+      <th class="sayi">Tükendi</th><th class="sayi">Rakibinden önce tükendi</th><th class="sayi">Rakibi önce tükendi</th>
+      <th class="sayi">Ort. tükenme anı</th>
     </tr></thead>
     <tbody>
     {% for p in satirlar %}
       <tr>
         <td><a href="{% url 'israf:yemek' p.dish.code %}{% if filtre_qs %}?{{ filtre_qs }}{% endif %}">{{ p.dish.name }}</a></td>
         <td class="sayi">{{ p.pairs }}</td>
+        <td class="sayi"><strong>{{ p.avg_share|yuzde }}</strong></td>
+        <td class="sayi">{{ p.avg_production_share|yuzde }}</td>
         <td class="sayi">{{ p.ran_out }}</td>
         <td class="sayi">{{ p.first_out }} <span class="soluk">({{ p.first_out_rate|yuzde:0 }})</span></td>
         <td class="sayi">{{ p.rival_first }}</td>
-        <td class="sayi">{{ p.avg_production_share|yuzde }}</td>
-        <td class="sayi">{{ p.avg_share|yuzde }}</td>
         <td class="sayi">{{ p.avg_position|yuzde:0 }}</td>
       </tr>
     {% endfor %}

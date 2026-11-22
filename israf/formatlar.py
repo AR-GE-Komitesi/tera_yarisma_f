@@ -127,7 +127,8 @@ URETIM = CsvFormat(
     grain="Bir satır = o öğünde çıkan bir yemek",
     key=("tarih", "ogun", "yemek_kodu"),
     replace_rule="Dosyadaki her (tarih, öğün) için o öğünün bütün kayıtları silinip dosyadakiler yazılır. "
-    "Düzeltme için dosyayı yeniden yüklemek yeterlidir.",
+    "O öğünün kaydı daha önce yüklendiyse dosya reddedilir; düzeltilmiş dosya «Önceki verinin yerine "
+    "geçsin» onayıyla yüklenir.",
     columns=(
         DATE,
         MEAL,
@@ -164,6 +165,7 @@ URETIM = CsvFormat(
     ),
     rules=(
         "Bu dosya o günün menüsüdür: tepsi analizindeki yemek kodları bu dosyadaki kodlarla eşleşmelidir.",
+        "Bir öğünün bütün yemekleri tek dosyada gelir.",
         "`artan_porsiyon`, `uretilen_porsiyon` değerini aşamaz.",
         "`bitis_saati` dolu ama `artan_porsiyon` 0 değilse uyarı verilir.",
         "Bir öğünde ana yemek ya da yan yemek sayısı 2 değilse uyarı verilir; tercih analizi o öğünü atlar.",
@@ -178,7 +180,9 @@ TEPSILER = CsvFormat(
     frequency="Her öğünün tepsileri işlendikten sonra",
     grain="Bir satır = bir tepsideki bir tabak (uzun format)",
     key=("tarih", "ogun", "tepsi_id", "yemek_kodu"),
-    replace_rule="Dosyadaki her (tarih, öğün) için o öğünün tepsi özeti silinip dosyadan yeniden hesaplanır.",
+    replace_rule="Dosyadaki her (tarih, öğün) için o öğünün tepsi özeti silinip dosyadan yeniden hesaplanır. "
+    "O öğünün tepsileri daha önce yüklendiyse dosya reddedilir; düzeltilmiş dosya «Önceki verinin yerine "
+    "geçsin» onayıyla yüklenir.",
     columns=(
         DATE,
         MEAL,
@@ -200,6 +204,8 @@ TEPSILER = CsvFormat(
         ("2026-11-20", "ogle", "T00002", "mercimek_corbasi", "belirsiz"),
     ),
     rules=(
+        "Bir öğünün bütün tepsileri tek dosyada gelir. Tepsiler birden çok kamerada ya da partide işlendiyse "
+        "dosyalar birleştirilip gönderilir; aynı öğünün ikinci parçası ayrı yüklenirse reddedilir.",
         "Tepside olmayan yemek için satır yazılmaz. Alınıp hiç yenmeyen tabak `dokunulmadi` olarak yazılır.",
         "`belirsiz`: model tabağı göremedi ya da karar veremedi. Oranlara katılmaz, ayrıca sayılır.",
         "O öğün için yemekhane kaydı yüklüyse, kaydında olmayan bir yemek kodu hata sayılır.",
@@ -215,5 +221,7 @@ GENERAL_RULES = (
     "İlk satır başlıktır. Sütun sırası önemli değildir; başlıkta büyük/küçük harf ve Türkçe karakter farkı tolere edilir.",
     "Ondalık ayırıcı nokta ya da virgül olabilir (`12.5` ve `12,5` aynıdır). Binlik ayırıcı kullanılmaz.",
     "Bir dosya birden fazla günü içerebilir. Hatalı tek bir satır varsa dosyanın tamamı reddedilir, hiçbir şey yazılmaz.",
-    "Yükleme sırası: yemekler → (ogunler) → uretim → tepsiler. Aynı öğünü yeniden yüklemek öncekinin yerine geçer.",
+    "Yükleme sırası: yemekler → (ogunler) → uretim → tepsiler.",
+    "Yemekhane kaydı ve tepsi analizi öğün öğün yazılır. Daha önce yüklenmiş bir öğünü içeren dosya, yerine "
+    "geçme onayı verilmedikçe reddedilir; böylece aynı öğünün iki parçası birbirini sessizce silmez.",
 )

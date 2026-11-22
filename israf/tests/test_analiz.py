@@ -128,6 +128,15 @@ class PreferenceTests(TestCase):
         self.assertEqual((summary["kofte"].first_out, summary["kofte"].rival_first), (0, 1))
         self.assertAlmostEqual(summary["makarna"].avg_position, 105 / 150)
 
+    def test_preference_summary_is_ordered_by_take_share_not_by_running_out(self):
+        # Az üretilen tavuk önce tükendi ama tabakların çoğu köfteden alındı: tercih edilen köftedir.
+        tavuk, kofte = Dish.objects.get(code="tavuk"), Dish.objects.get(code="kofte")
+        a = analiz.DishDay(DAY, "ogle", tavuk, 3, 0, time(12, 0), None, None)
+        b = analiz.DishDay(DAY, "ogle", kofte, 10, 2, None, None, None)
+        summary = analiz.preference_summary([analiz.Pair(DAY, "ogle", "ana_yemek", a, b)])
+        self.assertEqual([p.dish.code for p in summary], ["kofte", "tavuk"])
+        self.assertEqual(summary[1].first_out, 1)
+
 
 class ThresholdTests(TestCase):
     def test_seeded_profiles(self):

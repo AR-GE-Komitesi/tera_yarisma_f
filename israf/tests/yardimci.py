@@ -53,8 +53,8 @@ TRAYS_CSV = """tarih,ogun,tepsi_id,yemek_kodu,durum
 """
 
 
-def load(kind, text, name="dosya.csv", encoding="utf-8"):
-    return import_csv(kind, text.encode(encoding), name)
+def load(kind, text, name="dosya.csv", encoding="utf-8", replace=False):
+    return import_csv(kind, text.encode(encoding), name, replace=replace)
 
 
 def load_fixture():

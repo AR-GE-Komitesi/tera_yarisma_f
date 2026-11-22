@@ -32,12 +32,16 @@ class RankingForm(forms.Form):
 class UploadForm(forms.Form):
     tur = forms.ChoiceField(label="Dosya türü", choices=ImportBatch.Kind.choices)
     dosya = forms.FileField(label="CSV dosyası")
+    yerine_gecsin = forms.BooleanField(label="Önceki verinin yerine geçsin", required=False)
 
     def clean_dosya(self):
         upload = self.cleaned_data["dosya"]
         limit = settings.ISRAF_MAX_UPLOAD_MB * 1024 * 1024
         if upload.size > limit:
-            raise forms.ValidationError(f"Dosya {settings.ISRAF_MAX_UPLOAD_MB} MB sınırını aşıyor.")
+            raise forms.ValidationError(
+                f"Dosya {settings.ISRAF_MAX_UPLOAD_MB} MB sınırını aşıyor. Uzun dönemleri tarih aralıklarına "
+                "bölerek yükleyin; bir öğünü iki dosyaya bölmeyin."
+            )
         if not upload.name.lower().endswith((".csv", ".txt")):
             raise forms.ValidationError("Yalnızca .csv uzantılı dosya yüklenebilir.")
         return upload
