@@ -282,8 +282,8 @@ Personel yetkisi gerekir.
 
 Bilmeniz gerekenler:
 
-- Bir dosya birden çok günü içerebilir. En fazla 20 MB olabilir (yaklaşık üç aylık tepsi verisi). Daha uzun
-  dönemleri tarih aralıklarına bölerek yükleyin.
+- Bir dosya birden çok günü içerebilir. En fazla 20 MB olabilir: öğün başına ~1.100 tepsiyle yaklaşık 100
+  öğünlük tepsi verisi. Daha uzun dönemleri tarih aralıklarına bölerek yükleyin.
 - **Bir öğün tek dosyada gelir.** Yemekhane kaydı ya da tepsi analizi daha önce yüklenmiş bir öğünü içeren
   dosya reddedilir. Bu, aynı öğünün iki parçasının (ör. iki kameranın tepsileri) birbirini sessizce
   silmesini önler. Parçaları tek dosyada birleştirip yükleyin.
